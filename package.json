@@ -1,0 +1,17 @@
+{
+  "name": "tucuman-bus-radar",
+  "version": "1.0.0",
+  "description": "Real-time bus tracker for Tucuman",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  }
+}

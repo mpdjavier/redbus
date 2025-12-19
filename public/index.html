@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tucumán Bus Radar V2</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            height: 100vh;
+        }
+
+        #sidebar {
+            width: 320px;
+            background: #f8f9fa;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            z-index: 2000;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #map {
+            flex-grow: 1;
+            height: 100%;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+        }
+
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 20px;
+            color: #333;
+        }
+
+        p {
+            margin: 0;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        #line-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .line-item {
+            background: white;
+            padding: 8px;
+            margin-bottom: 5px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .line-item:hover {
+            background: #f0f0f0;
+        }
+
+        .line-item input {
+            margin-right: 10px;
+        }
+
+        .line-item label {
+            cursor: pointer;
+            font-size: 14px;
+            flex-grow: 1;
+        }
+
+        .sidebar-footer {
+            padding: 15px;
+            background: #fff;
+            border-top: 1px solid #ddd;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        button.stop {
+            background-color: #dc3545;
+        }
+
+        button.stop:hover {
+            background-color: #c82333;
+        }
+
+        .location-control {
+            margin-bottom: 10px;
+        }
+
+        .status-bar {
+            font-size: 12px;
+            text-align: center;
+            margin-top: 5px;
+            color: #666;
+        }
+
+        .marker-label {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 2px 4px;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <h1>🚍 Bus Radar V2</h1>
+            <p>1. Selecciona Líneas</p>
+            <input type="text" id="lineSearch" class="search-box" placeholder="Buscar línea (ej: 102)...">
+            <p style="font-size: 11px; color: #888; text-align: right;">Seleccionadas: <span id="selectedCount">0</span>
+            </p>
+        </div>
+
+        <div id="line-list">
+            <!-- Lines will be injected here -->
+            <div style="text-align: center; padding: 20px; color: #999;">Cargando líneas...</div>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="location-control">
+                <p>2. Define tu Ubicación</p>
+                <input type="text" id="addressSearch" class="search-box" placeholder="Dirección o click en mapa...">
+                <button onclick="searchAddress()"
+                    style="background: #007bff; padding: 8px; font-size: 14px; margin-bottom: 5px;">Buscar Dir.</button>
+            </div>
+
+            <div class="location-control">
+                <label style="font-size: 13px;">Radio alerta: <span id="radiusVal">500</span>m</label>
+                <input type="range" id="radiusRange" min="200" max="2000" step="100" value="500" style="width: 100%;">
+            </div>
+
+            <button id="monitorBtn" onclick="toggleMonitoring()">▶ Iniciar Monitor</button>
+            <div id="status" class="status-bar">Listo</div>
+            <div id="lastUpdate" class="status-bar"></div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- API Abstraction -->
+    <script src="api.js"></script>
+
+    <script>
+        // --- Map Initialization ---
+        const map = L.map('map').setView([-26.83, -65.20], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // --- Icons ---
+        const busIcon = L.divIcon({
+            className: 'custom-bus-icon',
+            html: '<div style="font-size: 24px; line-height: 24px; text-shadow: 2px 2px 2px rgba(0,0,0,0.3);">🚌</div>',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
+
+        const userIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        // --- State ---
+        let availableLines = [];
+        let selectedLines = new Set();
+        let userMarker = null;
+        let userCircle = null;
+        let busMarkers = []; // Array of {id, marker}
+        let monitoringInterval = null;
+        let lastNotificationTime = {};
+
+        // --- Data Fetching ---
+        async function fetchLines() {
+            try {
+                availableLines = await BusAPI.getLines();
+                BusAPI.setLinesCache(availableLines);
+                renderLineList();
+            } catch (e) {
+                console.error(e);
+                document.getElementById('line-list').innerHTML = '<div style="color:red; text-align:center;">Error cargando líneas</div>';
+            }
+        }
+
+        // --- UI Rendering ---
+        const lineList = document.getElementById('line-list');
+        const searchInput = document.getElementById('lineSearch');
+
+        function renderLineList() {
+            const filter = searchInput.value.toLowerCase();
+            lineList.innerHTML = '';
+
+            availableLines.forEach(line => {
+                if (line.descripcion.toLowerCase().includes(filter)) {
+                    const div = document.createElement('div');
+                    div.className = 'line-item';
+                    div.onclick = (e) => {
+                        if (e.target.tagName !== 'INPUT') {
+                            const chk = div.querySelector('input');
+                            chk.checked = !chk.checked;
+                            chk.dispatchEvent(new Event('change'));
+                        }
+                    };
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = line.codLinea;
+                    checkbox.checked = selectedLines.has(line.codLinea.toString());
+                    checkbox.onchange = (e) => {
+                        const val = e.target.value.toString();
+                        if (e.target.checked) selectedLines.add(val);
+                        else selectedLines.delete(val);
+                        document.getElementById('selectedCount').innerText = selectedLines.size;
+                    };
+
+                    const label = document.createElement('label');
+                    label.innerText = line.descripcion;
+
+                    div.appendChild(checkbox);
+                    div.appendChild(label);
+                    lineList.appendChild(div);
+                }
+            });
+        }
+
+        searchInput.addEventListener('input', renderLineList);
+
+        // --- Location Logic ---
+        function setUserLocation(latlng) {
+            if (userMarker) map.removeLayer(userMarker);
+            if (userCircle) map.removeLayer(userCircle);
+
+            userMarker = L.marker(latlng, { icon: userIcon }).addTo(map);
+
+            const radius = parseInt(document.getElementById('radiusRange').value);
+            userCircle = L.circle(latlng, {
+                color: 'red',
+                fillColor: '#f03',
+                fillOpacity: 0.1,
+                radius: radius
+            }).addTo(map);
+
+            map.panTo(latlng);
+        }
+
+        map.on('click', e => setUserLocation(e.latlng));
+
+        document.getElementById('radiusRange').addEventListener('input', (e) => {
+            document.getElementById('radiusVal').innerText = e.target.value;
+            if (userCircle) userCircle.setRadius(e.target.value);
+        });
+
+        async function searchAddress() {
+            const query = document.getElementById('addressSearch').value;
+            if (!query) return;
+
+            try {
+                // Using OSM Nominatim for simplicity
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Tucuman, Argentina')}`;
+                const res = await axios.get(url);
+                if (res.data && res.data.length > 0) {
+                    const first = res.data[0];
+                    const latlng = L.latLng(first.lat, first.lon);
+                    setUserLocation(latlng);
+                } else {
+                    alert('Dirección no encontrada');
+                }
+            } catch (e) {
+                alert('Error buscando dirección');
+            }
+        }
+
+        // --- Monitoring Logic ---
+        function toggleMonitoring() {
+            const btn = document.getElementById('monitorBtn');
+            if (monitoringInterval) {
+                // Stop
+                clearInterval(monitoringInterval);
+                monitoringInterval = null;
+                btn.innerText = "▶ Iniciar Monitor";
+                btn.classList.remove('stop');
+                document.getElementById('status').innerText = "Detenido";
+            } else {
+                // Start
+                if (selectedLines.size === 0) {
+                    alert('Selecciona al menos una línea.');
+                    return;
+                }
+                if (!userMarker) {
+                    alert('Define tu ubicación en el mapa.');
+                    return;
+                }
+
+                // Request Notification Permission
+                if ("Notification" in window && Notification.permission !== "granted") {
+                    Notification.requestPermission();
+                }
+
+                btn.innerText = "⏹ Detener Monitor";
+                btn.classList.add('stop');
+                document.getElementById('status').innerText = "Monitoreando...";
+
+                updatePositions(); // Immediate first run
+                monitoringInterval = setInterval(updatePositions, 15000); // 15s refresh
+            }
+        }
+
+        async function updatePositions() {
+            try {
+                // Use BusAPI instead of direct axios
+                const lineIds = Array.from(selectedLines);
+                const buses = await BusAPI.getBusPositions(lineIds);
+
+                // Clear old markers
+                busMarkers.forEach(m => map.removeLayer(m));
+                busMarkers = [];
+
+                const center = userMarker.getLatLng();
+                const radius = userCircle.getRadius();
+                const now = Date.now();
+
+                buses.forEach(bus => {
+                    const busLatLng = L.latLng(bus.latitud || bus.lat, bus.longitud || bus.lng);
+
+                    // Add marker
+                    const marker = L.marker(busLatLng, { icon: busIcon })
+                        .bindTooltip(`${bus.linea} (#${bus.interno})`, { direction: 'top', className: 'marker-label' })
+                        .addTo(map);
+                    busMarkers.push(marker);
+
+                    // Check alert
+                    const distance = center.distanceTo(busLatLng);
+                    if (distance <= radius) {
+                        const lastTime = lastNotificationTime[bus.linea] || 0;
+                        if (now - lastTime > 120000) { // 2 min cooldown
+                            if (Notification.permission === "granted") {
+                                new Notification("¡Colectivo en Rango!", {
+                                    body: `${bus.linea} a ${Math.round(distance)}m.`,
+                                    icon: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png'
+                                });
+                                lastNotificationTime[bus.linea] = now;
+                            }
+                        }
+                    }
+                });
+
+                document.getElementById('lastUpdate').innerText = `Última act: ${new Date().toLocaleTimeString()} (${buses.length} buses)`;
+
+            } catch (e) {
+                console.error(e);
+                document.getElementById('status').innerText = "Error conexión...";
+            }
+        }
+
+        // Init
+        document.addEventListener('bus-api-ready', () => {
+            fetchLines();
+        });
+
+        // Fallback
+        setTimeout(() => {
+            if (availableLines.length === 0) {
+                console.log("Fallback init");
+                fetchLines();
+            }
+        }, 2000);
+    </script>
+</body>
+
+</html>
