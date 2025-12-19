@@ -124,8 +124,14 @@ async function getBusPositions(lineIds) {
                     headers: { 'Content-Type': 'application/json' }
                 };
                 const res = await Capacitor.Plugins.CapacitorHttp.get(options);
+
+                let rawData = res.data;
+                if (typeof rawData === 'string') {
+                    try { rawData = JSON.parse(rawData); } catch (e) { console.error(e); }
+                }
+
                 // API returns { posiciones: [...] }
-                const positions = res.data.posiciones || [];
+                const positions = (rawData && rawData.posiciones) || [];
                 // API positions don't have line info, we must inject it
                 // We know 'id' but we want 'description'. Requires looking up id in cache or similar.
                 // For simplicity, we might just attach the ID or finding the description from 'lines'.
