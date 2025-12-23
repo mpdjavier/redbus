@@ -770,10 +770,66 @@
             map.fitBounds(currentRouteLayer.getBounds(), { padding: [50, 50] });
 
             document.getElementById('status-text').innerText = `Mostrando ruta: Línea ${lineId}`;
+
+            // Start tracking buses for this line
+            trackBuses(lineId);
+        }
+
+        // Bus tracking
+        let busMarkers = [];
+        let busTrackingInterval = null;
+
+        async function trackBuses(lineId) {
+            // Clear previous tracking
+            if (busTrackingInterval) {
+                clearInterval(busTrackingInterval);
+            }
+            busMarkers.forEach(m => map.removeLayer(m));
+            busMarkers = [];
+
+            // Create custom bus icon
+            const busIcon = L.divIcon({
+                className: 'bus-marker',
+                html: '<div style="background:#ef4444; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold; border:2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3);">🚌</div>',
+                iconSize: [24, 24]
+            });
+
+            async function updateBuses() {
+                try {
+                    const positions = await BusAPI.getBusPositions([lineId]);
+
+                    // Clear old markers
+                    busMarkers.forEach(m => map.removeLayer(m));
+                    busMarkers = [];
+
+                    if (positions && positions.length > 0) {
+                        positions.forEach(bus => {
+                            const marker = L.marker([bus.latitud, bus.longitud], { icon: busIcon })
+                                .bindPopup(`<strong>Línea ${lineId}</strong><br>Velocidad: ${bus.velocidad || 0} km/h`)
+                                .addTo(map);
+                            busMarkers.push(marker);
+                        });
+                        console.log(`Updated ${positions.length} bus positions for line ${lineId}`);
+                    }
+                } catch (e) {
+                    console.error('Error fetching bus positions:', e);
+                }
+            }
+
+            // Update immediately and then every 10 seconds
+            updateBuses();
+            busTrackingInterval = setInterval(updateBuses, 10000);
         }
 
         function goBack() {
             document.getElementById('back-btn').style.display = 'none';
+
+            // Stop bus tracking
+            if (busTrackingInterval) {
+                clearInterval(busTrackingInterval);
+            }
+            busMarkers.forEach(m => map.removeLayer(m));
+            busMarkers = [];
         }
     </script>
 
