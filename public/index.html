@@ -462,6 +462,72 @@
             }
         });
 
+        // Map Selection Mode
+        let mapSelectionMode = null;
+        let tempMarker = null;
+
+        document.getElementById('map-btn-origin').addEventListener('click', () => {
+            mapSelectionMode = 'origin';
+            map.getContainer().style.cursor = 'crosshair';
+            document.getElementById('status-text').innerText = "Haz clic en el mapa para seleccionar origen";
+        });
+
+        document.getElementById('map-btn-dest').addEventListener('click', () => {
+            mapSelectionMode = 'destination';
+            map.getContainer().style.cursor = 'crosshair';
+            document.getElementById('status-text').innerText = "Haz clic en el mapa para seleccionar destino";
+        });
+
+        map.on('click', async (e) => {
+            if (!mapSelectionMode) return;
+
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+
+            // Remove temp marker if exists
+            if (tempMarker) {
+                map.removeLayer(tempMarker);
+            }
+
+            // Add marker
+            tempMarker = L.marker([lat, lng]).addTo(map);
+
+            // Reverse geocode
+            try {
+                const res = await axios.get('https://nominatim.openstreetmap.org/reverse', {
+                    params: {
+                        lat,
+                        lon: lng,
+                        format: 'json'
+                    }
+                });
+
+                const place = {
+                    lat,
+                    lon: lng,
+                    display_name: res.data.display_name,
+                    alias: res.data.display_name.split(',')[0]
+                };
+
+                if (mapSelectionMode === 'destination') {
+                    currentPlace = place;
+                    destInput.value = place.alias;
+                    document.getElementById('fav-btn').style.display = 'block';
+                    findBestLines({ lat, lng }, originLocation);
+                } else {
+                    originLocation = { lat, lng };
+                    originInput.value = place.alias;
+                }
+
+                document.getElementById('status-text').innerText = "Ubicación seleccionada";
+            } catch (err) {
+                console.error('Reverse geocode error:', err);
+            }
+
+            map.getContainer().style.cursor = '';
+            mapSelectionMode = null;
+        });
+
         // === FAVORITES ===
         function getFavorites() {
             try { return JSON.parse(localStorage.getItem('redbus_favorites') || '[]'); }
@@ -637,9 +703,73 @@
             document.getElementById('content').innerHTML = html;
         }
 
+        // Route visualization
+        let currentRouteLayer = null;
+        let routeResults = [];
+
+        async function renderResults(results) {
+            routeResults = results; // Store for later use
+            console.log(`Route search complete. Valid routes found: ${results.length}`);
+
+            document.getElementById('calculating-bar').style.display = 'none';
+
+            if (results.length === 0) {
+                document.getElementById('content').innerHTML = '<div style="padding:40px; text-align:center; color:#9ca3af;"><div style="font-size:48px; margin-bottom:16px;">😕</div><p>No se encontraron líneas cercanas.</p><p style="font-size:13px;">Intenta aumentar la distancia de caminata o busca otra dirección.</p></div>';
+                document.getElementById('status-text').innerText = "Sin resultados";
+                return;
+            }
+
+            // Sort by total walking distance
+            results.sort((a, b) => a.totalWalk - b.totalWalk);
+
+            document.getElementById('status-text').innerText = `Se encontraron ${results.length} líneas cercanas.`;
+
+            let html = '';
+            results.forEach(item => {
+                const walkTimeOrigin = Math.ceil(item.distOrigin / 80);
+                const walkTimeDest = Math.ceil(item.distDest / 80);
+
+                html += `
+                    <div class="line-card" onclick="selectLine('${item.line.codLinea}')">
+                        <div class="line-badge">${item.line.codLinea}</div>
+                        <div class="line-info">
+                            <div class="line-name">${item.line.descripcion}</div>
+                            <div class="line-meta">
+                                ${item.distOrigin > 0 ? `🟢 ${Math.round(item.distOrigin)}m (${walkTimeOrigin} min) · ` : ''}
+                                🔴 ${Math.round(item.distDest)}m (${walkTimeDest} min)
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('content').innerHTML = html;
+        }
+
         function selectLine(lineId) {
             console.log('Selected line:', lineId);
-            // Will be implemented in Phase 4
+
+            // Find the route in results
+            const result = routeResults.find(r => r.line.codLinea == lineId);
+            if (!result) return;
+
+            // Remove previous route
+            if (currentRouteLayer) {
+                map.removeLayer(currentRouteLayer);
+            }
+
+            // Draw route on map
+            const latLngs = result.path.map(p => [p.lat, p.lng]);
+            currentRouteLayer = L.polyline(latLngs, {
+                color: '#2563eb',
+                weight: 4,
+                opacity: 0.7
+            }).addTo(map);
+
+            // Fit map to route
+            map.fitBounds(currentRouteLayer.getBounds(), { padding: [50, 50] });
+
+            document.getElementById('status-text').innerText = `Mostrando ruta: Línea ${lineId}`;
         }
 
         function goBack() {
