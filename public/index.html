@@ -354,8 +354,295 @@
         }
         init();
 
+        init();
+
+        // === AUTOCOMPLETE & SEARCH ===
+        const destInput = document.getElementById('destination');
+        const originInput = document.getElementById('origin');
+        const autocompleteList = document.getElementById('autocomplete-list');
+        let currentPlace = null;
+        let originLocation = null;
+        let activeField = 'destination';
+
+        // Nominatim Search
+        async function searchNominatim(query) {
+            if (query.length < 3) return [];
+            try {
+                const res = await axios.get('https://nominatim.openstreetmap.org/search', {
+                    params: {
+                        q: query + ', San Miguel de Tucumán, Argentina',
+                        format: 'json',
+                        limit: 5,
+                        addressdetails: 1
+                    }
+                });
+                return res.data;
+            } catch (e) {
+                console.error('Nominatim error:', e);
+                return [];
+            }
+        }
+
+        // Show Autocomplete
+        function showAutocomplete(results) {
+            if (results.length === 0) {
+                autocompleteList.style.display = 'none';
+                return;
+            }
+
+            autocompleteList.innerHTML = '';
+            results.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'autocomplete-item';
+                div.innerHTML = `<strong>${item.display_name.split(',')[0]}</strong><br><small>${item.display_name}</small>`;
+                div.onclick = () => selectPlace(item);
+                autocompleteList.appendChild(div);
+            });
+            autocompleteList.style.display = 'block';
+        }
+
+        // Select Place
+        function selectPlace(place) {
+            const lat = parseFloat(place.lat);
+            const lon = parseFloat(place.lon);
+
+            if (activeField === 'destination') {
+                currentPlace = { lat, lon, display_name: place.display_name, alias: place.display_name.split(',')[0] };
+                destInput.value = place.display_name.split(',')[0];
+                document.getElementById('fav-btn').style.display = 'block';
+
+                // Find best lines for this destination
+                findBestLines({ lat, lng: lon }, originLocation);
+            } else {
+                originLocation = { lat, lng: lon };
+                originInput.value = place.display_name.split(',')[0];
+            }
+
+            autocompleteList.style.display = 'none';
+            map.setView([lat, lon], 15);
+            L.marker([lat, lon]).addTo(map);
+        }
+
+        // Destination Input
+        destInput.addEventListener('input', async (e) => {
+            activeField = 'destination';
+            const query = e.target.value;
+            if (query.length >= 3) {
+                const results = await searchNominatim(query);
+                showAutocomplete(results);
+            } else {
+                autocompleteList.style.display = 'none';
+            }
+        });
+
+        // Origin Input
+        originInput.addEventListener('input', async (e) => {
+            activeField = 'origin';
+            const query = e.target.value;
+            if (query.length >= 3) {
+                const results = await searchNominatim(query);
+                showAutocomplete(results);
+            } else {
+                autocompleteList.style.display = 'none';
+            }
+        });
+
+        // GPS Button
+        document.getElementById('gps-btn').addEventListener('click', () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    originLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    originInput.value = "Mi ubicación";
+                    map.setView([originLocation.lat, originLocation.lng], 15);
+                    L.marker([originLocation.lat, originLocation.lng]).addTo(map);
+                }, (err) => {
+                    console.error("No se pudo obtener ubicación:", err.message);
+                    originInput.value = "";
+                });
+            }
+        });
+
+        // === FAVORITES ===
+        function getFavorites() {
+            try { return JSON.parse(localStorage.getItem('redbus_favorites') || '[]'); }
+            catch (e) { return []; }
+        }
+
+        function toggleFavorite() {
+            if (!currentPlace) return;
+            const favs = getFavorites();
+            const idx = favs.findIndex(f => Math.abs(f.lat - currentPlace.lat) < 0.0001 && Math.abs(f.lon - currentPlace.lon) < 0.0001);
+
+            if (idx >= 0) {
+                favs.splice(idx, 1);
+                document.getElementById('fav-btn').style.color = '#9ca3af';
+            } else {
+                const alias = prompt('Nombre para este favorito:', currentPlace.alias);
+                if (alias) {
+                    favs.push({ ...currentPlace, alias });
+                    document.getElementById('fav-btn').style.color = '#fbbf24';
+                }
+            }
+            localStorage.setItem('redbus_favorites', JSON.stringify(favs));
+            renderFavorites();
+        }
+
+        function renderFavorites() {
+            const favs = getFavorites();
+            const container = document.getElementById('favorites-list');
+            const empty = document.getElementById('empty-state');
+
+            container.innerHTML = '';
+            if (favs.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            favs.forEach(f => {
+                const el = document.createElement('div');
+                el.className = 'line-card';
+                el.style.padding = '12px';
+                el.innerHTML = `
+                    <div class="line-badge" style="background:#fef3c7; color:#d97706; width:36px; height:36px; font-size:16px;">★</div>
+                    <div class="line-info">
+                        <div class="line-name">${f.alias}</div>
+                        <div class="line-meta">${f.display_name.split(',')[0]}</div>
+                    </div>
+                `;
+                el.onclick = () => selectPlace(f);
+                container.appendChild(el);
+            });
+
+            if (destInput.value.length === 0) {
+                container.style.display = 'block';
+                empty.style.display = 'none';
+            }
+        }
+
+        document.getElementById('fav-btn').onclick = toggleFavorite;
+        renderFavorites();
+
+        // === FIND BEST LINES ===
+        async function findBestLines(dest, origin = null) {
+            console.log(`findBestLines called. Lines available: ${currentLines.length}`);
+            console.log(`Destination:`, dest);
+            console.log(`Origin:`, origin);
+
+            document.getElementById('status-text').innerText = "Buscando líneas cercanas...";
+            document.getElementById('calculating-bar').style.display = 'block';
+            document.getElementById('content').innerHTML = '<div style="padding:20px; text-align:center;">Analizando recorridos...</div>';
+
+            const results = [];
+            const total = currentLines.length;
+            let processed = 0;
+
+            // Process in batches
+            const BATCH_SIZE = 5;
+            const queue = [...currentLines];
+
+            async function processBatch() {
+                const batch = queue.splice(0, BATCH_SIZE);
+                if (batch.length === 0) {
+                    renderResults(results);
+                    return;
+                }
+
+                const promises = batch.map(async (line) => {
+                    try {
+                        let route = await BusAPI.getRoute(line.codLinea);
+                        if (!route || !route.nodos) return null;
+
+                        const path = route.nodos.map(n => ({ lat: n.latitud, lng: n.longitud }));
+
+                        // Calculate distance to destination
+                        const projDest = Geometry.projectOnPolyline(dest, path);
+                        const distDest = projDest.dist;
+
+                        if (distDest > maxWalkDistance) return null;
+
+                        let distOrigin = 0;
+                        if (origin) {
+                            const projOrigin = Geometry.projectOnPolyline(origin, path);
+                            distOrigin = projOrigin.dist;
+
+                            if (distOrigin > maxWalkDistance) return null;
+                            if (projOrigin.index > projDest.index) return null; // Wrong direction
+                        }
+
+                        return {
+                            line,
+                            distOrigin,
+                            distDest,
+                            totalWalk: distOrigin + distDest,
+                            path
+                        };
+                    } catch (e) {
+                        return null;
+                    }
+                });
+
+                const batchResults = await Promise.all(promises);
+                const validInBatch = batchResults.filter(r => r);
+                validInBatch.forEach(r => results.push(r));
+
+                console.log(`Batch complete: ${validInBatch.length}/${batch.length} valid routes in this batch`);
+
+                processed += batch.length;
+                const progressPct = processed / total;
+                document.getElementById('progress-fill').style.width = (progressPct * 100) + '%';
+
+                document.getElementById('status-text').innerText = `Analizando líneas... ${processed}/${total} (${results.length} válidas)`;
+
+                setTimeout(processBatch, 50);
+            }
+
+            processBatch();
+        }
+
+        async function renderResults(results) {
+            console.log(`Route search complete. Valid routes found: ${results.length}`);
+
+            document.getElementById('calculating-bar').style.display = 'none';
+
+            if (results.length === 0) {
+                document.getElementById('content').innerHTML = '<div style="padding:40px; text-align:center; color:#9ca3af;"><div style="font-size:48px; margin-bottom:16px;">😕</div><p>No se encontraron líneas cercanas.</p><p style="font-size:13px;">Intenta aumentar la distancia de caminata o busca otra dirección.</p></div>';
+                document.getElementById('status-text').innerText = "Sin resultados";
+                return;
+            }
+
+            // Sort by total walking distance
+            results.sort((a, b) => a.totalWalk - b.totalWalk);
+
+            document.getElementById('status-text').innerText = `Se encontraron ${results.length} líneas cercanas.`;
+
+            let html = '';
+            results.forEach(item => {
+                const walkTimeOrigin = Math.ceil(item.distOrigin / 80); // ~80m/min walking speed
+                const walkTimeDest = Math.ceil(item.distDest / 80);
+
+                html += `
+                    <div class="line-card" onclick="selectLine('${item.line.codLinea}')">
+                        <div class="line-badge">${item.line.codLinea}</div>
+                        <div class="line-info">
+                            <div class="line-name">${item.line.descripcion}</div>
+                            <div class="line-meta">
+                                ${item.distOrigin > 0 ? `🟢 ${Math.round(item.distOrigin)}m (${walkTimeOrigin} min) · ` : ''}
+                                🔴 ${Math.round(item.distDest)}m (${walkTimeDest} min)
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('content').innerHTML = html;
+        }
+
+        function selectLine(lineId) {
+            console.log('Selected line:', lineId);
+            // Will be implemented in Phase 4
+        }
+
         function goBack() {
-            // Placeholder for back functionality
             document.getElementById('back-btn').style.display = 'none';
         }
     </script>
