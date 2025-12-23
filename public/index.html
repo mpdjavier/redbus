@@ -4,469 +4,362 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tucumán Bus Radar V2</title>
+    <title>Tucumán Bus Radar - Destino</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --surface: #ffffff;
+            --background: #f3f4f6;
+            --text: #1f2937;
+            --text-secondary: #6b7280;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', sans-serif;
             display: flex;
             height: 100vh;
+            overflow: hidden;
+            background: var(--background);
+            color: var(--text);
         }
 
-        #sidebar {
-            width: 320px;
-            background: #f8f9fa;
-            border-right: 1px solid #ddd;
+        /* Sidebar & Panel */
+        #panel {
+            width: 380px;
+            background: var(--surface);
             display: flex;
             flex-direction: column;
             z-index: 2000;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
         }
 
+        .panel-header {
+            padding: 12px 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 4px 0;
+            background: linear-gradient(to right, #2563eb, #7c3aed);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* Search Container */
+        .search-container {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            padding-left: 40px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Autocomplete */
+        #autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-top: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            display: none;
+        }
+
+        .autocomplete-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background 0.15s;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-item:hover {
+            background: #f9fafb;
+        }
+
+        /* Content Area */
+        #content {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 0;
+            max-height: calc(100vh - 280px);
+        }
+
+        /* Line Cards */
+        .line-card {
+            padding: 16px 24px;
+            border-bottom: 1px solid #f3f4f6;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .line-card:hover {
+            background: #f9fafb;
+        }
+
+        .line-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .line-info {
+            flex-grow: 1;
+        }
+
+        .line-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .line-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Back Button */
+        #back-btn {
+            display: none;
+            padding: 8px 16px;
+            background: #e5e7eb;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 12px;
+            transition: background 0.2s;
+        }
+
+        #back-btn:hover {
+            background: #d1d5db;
+        }
+
+        /* Map */
         #map {
             flex-grow: 1;
             height: 100%;
         }
 
-        .sidebar-header {
-            padding: 15px;
-            background: #fff;
-            border-bottom: 1px solid #ddd;
+        /* Progress Bar */
+        #calculating-bar {
+            display: none;
+            margin-top: 10px;
         }
 
-        h1 {
-            margin: 0 0 5px 0;
-            font-size: 20px;
-            color: #333;
-        }
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
 
-        p {
-            margin: 0;
-            font-size: 13px;
-            color: #666;
-        }
+            #panel {
+                width: 100%;
+                height: 40%;
+                box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.1);
+                order: 2;
+            }
 
-        .search-box {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            box-sizing: border-box;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
+            #content {
+                max-height: calc(40vh - 200px);
+            }
 
-        #line-list {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 10px;
-        }
+            #map {
+                height: 60%;
+                order: 1;
+            }
 
-        .line-item {
-            background: white;
-            padding: 8px;
-            margin-bottom: 5px;
-            border: 1px solid #eee;
-            border-radius: 4px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-        }
+            .panel-header {
+                padding: 12px 16px;
+            }
 
-        .line-item:hover {
-            background: #f0f0f0;
-        }
+            h1 {
+                font-size: 20px;
+            }
 
-        .line-item input {
-            margin-right: 10px;
-        }
-
-        .line-item label {
-            cursor: pointer;
-            font-size: 14px;
-            flex-grow: 1;
-        }
-
-        .sidebar-footer {
-            padding: 15px;
-            background: #fff;
-            border-top: 1px solid #ddd;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        button:hover {
-            background-color: #218838;
-        }
-
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-
-        button.stop {
-            background-color: #dc3545;
-        }
-
-        button.stop:hover {
-            background-color: #c82333;
-        }
-
-        .location-control {
-            margin-bottom: 10px;
-        }
-
-        .status-bar {
-            font-size: 12px;
-            text-align: center;
-            margin-top: 5px;
-            color: #666;
-        }
-
-        .marker-label {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid #333;
-            border-radius: 4px;
-            padding: 2px 4px;
-            font-size: 12px;
-            font-weight: bold;
-            white-space: nowrap;
+            .line-card {
+                padding: 12px 16px;
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <div id="sidebar">
-        <div class="sidebar-header">
-            <h1>🚍 Bus Radar V2</h1>
-            <p>1. Selecciona Líneas</p>
-            <input type="text" id="lineSearch" class="search-box" placeholder="Buscar línea (ej: 102)...">
-            <p style="font-size: 11px; color: #888; text-align: right;">Seleccionadas: <span id="selectedCount">0</span>
-            </p>
-        </div>
+    <div id="panel">
+        <div class="panel-header">
+            <button id="back-btn" onclick="goBack()">← Volver</button>
+            <h1>Bus Radar <span id="build-timestamp" style="font-size: 12px; color: #9ca3af; font-weight: 400;"></span>
+            </h1>
+            <p class="subtitle" id="status-text">Ingresa tu destino para ver sugerencias.</p>
 
-        <div id="line-list">
-            <!-- Lines will be injected here -->
-            <div style="text-align: center; padding: 20px; color: #999;">Cargando líneas...</div>
-        </div>
-
-        <div class="sidebar-footer">
-            <div class="location-control">
-                <p>2. Define tu Ubicación</p>
-                <input type="text" id="addressSearch" class="search-box" placeholder="Dirección o click en mapa...">
-                <button onclick="searchAddress()"
-                    style="background: #007bff; padding: 8px; font-size: 14px; margin-bottom: 5px;">Buscar Dir.</button>
+            <!-- Origin -->
+            <div class="search-container" id="origin-container" style="margin-bottom: 12px;">
+                <span class="search-icon" style="color:#10b981;">🟢</span>
+                <input type="text" id="origin" class="search-input" placeholder="¿Desde dónde sales?" autocomplete="off"
+                    style="padding-right: 75px;">
+                <button id="map-btn-origin" title="Elegir en Mapa"
+                    style="position:absolute; right:40px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:18px; color:#6b7280;">🗺️</button>
+                <button id="gps-btn" title="Mi Ubicación"
+                    style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:18px; color:#6b7280;">📍</button>
             </div>
 
-            <div class="location-control">
-                <label style="font-size: 13px;">Radio alerta: <span id="radiusVal">500</span>m</label>
-                <input type="range" id="radiusRange" min="200" max="2000" step="100" value="500" style="width: 100%;">
+            <!-- Destination -->
+            <div class="search-container" id="search-box-container">
+                <span class="search-icon" style="color:#ef4444;">🔴</span>
+                <input type="text" id="destination" class="search-input" placeholder="¿A dónde vas?" autocomplete="off"
+                    style="padding-right: 75px;">
+                <button id="map-btn-dest" title="Elegir en Mapa"
+                    style="position:absolute; right:40px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:18px; color:#6b7280;">🗺️</button>
+                <button id="fav-btn"
+                    style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:18px; color:#9ca3af; display:none;">★</button>
+                <div id="autocomplete-list"></div>
             </div>
 
-            <button id="monitorBtn" onclick="toggleMonitoring()">▶ Iniciar Monitor</button>
-            <div id="status" class="status-bar">Listo</div>
-            <div id="lastUpdate" class="status-bar"></div>
+            <!-- Walking Distance Control -->
+            <div style="margin: 16px 0; padding: 12px; background: #f9fafb; border-radius: 8px;">
+                <label style="display: block; font-size: 13px; color: #6b7280; margin-bottom: 8px;">
+                    🚶 Distancia máxima de caminata: <strong id="walk-dist-label">800m</strong>
+                </label>
+                <input type="range" id="walk-distance-slider" min="200" max="1500" step="100" value="800"
+                    style="width: 100%; cursor: pointer;">
+            </div>
+
+            <div id="calculating-bar" style="display:none; margin-top: 10px;">
+                <div style="height:4px; background:#e5e7eb; border-radius:2px; overflow:hidden;">
+                    <div id="progress-fill"
+                        style="width:0%; height:100%; background:var(--primary); transition: width 0.3s;"></div>
+                </div>
+                <div style="font-size:11px; color:#6b7280; text-align:right; margin-top:4px;">Analizando rutas...</div>
+            </div>
+        </div>
+
+        <div id="content">
+            <!-- Favorites List -->
+            <div id="favorites-list" style="padding: 16px; display:none;"></div>
+
+            <!-- Dynamic Content -->
+            <div id="empty-state" style="padding: 40px; text-align: center; color: #9ca3af;">
+                <div style="font-size: 48px; margin-bottom: 16px;">🗺️</div>
+                <p>Busca una dirección en San Miguel de Tucumán o Yerba Buena.</p>
+            </div>
         </div>
     </div>
 
-    <div id="map">
-        <!-- Toggle Button -->
-        <button id="toggle-btn" onclick="toggleSidebar()" style="
-            position: absolute;
-            bottom: 25px;
-            left: 10px; 
-            z-index: 1000;
-            width: 50px; 
-            height: 50px; 
-            background: white; 
-            border: none; 
-            border-radius: 50%;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            font-size: 24px;
-            cursor: pointer;
-            color: #333;
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-        ">☰</button>
-    </div>
+    <div id="map"></div>
 
-    <!-- Leaflet JS -->
+    <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <!-- API Abstraction -->
     <script src="api.js"></script>
+    <script src="geometry.js"></script>
 
     <script>
-        // --- Sidebar Logic ---
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-
-            if (sidebar.style.display === 'none') {
-                sidebar.style.display = 'flex';
-            } else {
-                sidebar.style.display = 'none';
-            }
-            // Trigger leafet resize
-            setTimeout(() => { map.invalidateSize(); }, 100);
-        }
-
-        // --- Map Initialization ---
+        // Setup Map
         const map = L.map('map').setView([-26.83, -65.20], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
         }).addTo(map);
 
-        // --- Icons ---
-        const busIcon = L.divIcon({
-            className: 'custom-bus-icon',
-            html: '<div style="font-size: 24px; line-height: 24px; text-shadow: 2px 2px 2px rgba(0,0,0,0.3);">🚌</div>',
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
+        // Global Variables
+        let currentLines = [];
+        let maxWalkDistance = 800;
+
+        // Update timestamp
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        document.getElementById('build-timestamp').textContent = `${day}/${month} ${hours}:${minutes}`;
+
+        // Walking distance slider
+        document.getElementById('walk-distance-slider').addEventListener('input', (e) => {
+            maxWalkDistance = parseInt(e.target.value);
+            document.getElementById('walk-dist-label').textContent = maxWalkDistance + 'm';
         });
 
-        const userIcon = L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        });
-
-        // --- State ---
-        let availableLines = [];
-        let selectedLines = new Set();
-        let userMarker = null;
-        let userCircle = null;
-        let busMarkers = []; // Array of {id, marker}
-        let monitoringInterval = null;
-        let lastNotificationTime = {};
-
-        // --- Data Fetching ---
-        async function fetchLines() {
+        // Initialize - Load lines
+        async function init() {
             try {
-                availableLines = await BusAPI.getLines();
-                BusAPI.setLinesCache(availableLines);
-                renderLineList();
+                currentLines = await BusAPI.getLines();
+                console.log(`Loaded ${currentLines.length} unique lines`);
             } catch (e) {
-                console.error(e);
-                document.getElementById('line-list').innerHTML = '<div style="color:red; text-align:center;">Error cargando líneas</div>';
+                console.error("Failed to load lines", e);
             }
         }
+        init();
 
-        // --- UI Rendering ---
-        const lineList = document.getElementById('line-list');
-        const searchInput = document.getElementById('lineSearch');
-
-        function renderLineList() {
-            const filter = searchInput.value.toLowerCase();
-            lineList.innerHTML = '';
-
-            availableLines.forEach(line => {
-                if (line.descripcion.toLowerCase().includes(filter)) {
-                    const div = document.createElement('div');
-                    div.className = 'line-item';
-                    div.onclick = (e) => {
-                        if (e.target.tagName !== 'INPUT') {
-                            const chk = div.querySelector('input');
-                            chk.checked = !chk.checked;
-                            chk.dispatchEvent(new Event('change'));
-                        }
-                    };
-
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.value = line.codLinea;
-                    checkbox.checked = selectedLines.has(line.codLinea.toString());
-                    checkbox.onchange = (e) => {
-                        const val = e.target.value.toString();
-                        if (e.target.checked) selectedLines.add(val);
-                        else selectedLines.delete(val);
-                        document.getElementById('selectedCount').innerText = selectedLines.size;
-                    };
-
-                    const label = document.createElement('label');
-                    label.innerText = line.descripcion;
-
-                    div.appendChild(checkbox);
-                    div.appendChild(label);
-                    lineList.appendChild(div);
-                }
-            });
+        function goBack() {
+            // Placeholder for back functionality
+            document.getElementById('back-btn').style.display = 'none';
         }
-
-        searchInput.addEventListener('input', renderLineList);
-
-        // --- Location Logic ---
-        function setUserLocation(latlng) {
-            if (userMarker) map.removeLayer(userMarker);
-            if (userCircle) map.removeLayer(userCircle);
-
-            userMarker = L.marker(latlng, { icon: userIcon }).addTo(map);
-
-            const radius = parseInt(document.getElementById('radiusRange').value);
-            userCircle = L.circle(latlng, {
-                color: 'red',
-                fillColor: '#f03',
-                fillOpacity: 0.1,
-                radius: radius
-            }).addTo(map);
-
-            map.panTo(latlng);
-
-            // Auto-hide sidebar on mobile if location is set
-            if (window.innerWidth < 600) {
-                const sidebar = document.getElementById('sidebar');
-                sidebar.style.display = 'none';
-                setTimeout(() => { map.invalidateSize(); }, 100);
-            }
-        }
-
-        map.on('click', e => setUserLocation(e.latlng));
-
-        document.getElementById('radiusRange').addEventListener('input', (e) => {
-            document.getElementById('radiusVal').innerText = e.target.value;
-            if (userCircle) userCircle.setRadius(e.target.value);
-        });
-
-        async function searchAddress() {
-            const query = document.getElementById('addressSearch').value;
-            if (!query) return;
-
-            try {
-                // Using OSM Nominatim for simplicity
-                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Tucuman, Argentina')}`;
-                const res = await axios.get(url);
-                if (res.data && res.data.length > 0) {
-                    const first = res.data[0];
-                    const latlng = L.latLng(first.lat, first.lon);
-                    setUserLocation(latlng);
-                } else {
-                    alert('Dirección no encontrada');
-                }
-            } catch (e) {
-                alert('Error buscando dirección');
-            }
-        }
-
-        // --- Monitoring Logic ---
-        function toggleMonitoring() {
-            const btn = document.getElementById('monitorBtn');
-            if (monitoringInterval) {
-                // Stop
-                clearInterval(monitoringInterval);
-                monitoringInterval = null;
-                btn.innerText = "▶ Iniciar Monitor";
-                btn.classList.remove('stop');
-                document.getElementById('status').innerText = "Detenido";
-            } else {
-                // Start
-                if (selectedLines.size === 0) {
-                    alert('Selecciona al menos una línea.');
-                    return;
-                }
-                if (!userMarker) {
-                    alert('Define tu ubicación en el mapa.');
-                    return;
-                }
-
-                // Request Notification Permission
-                if ("Notification" in window && Notification.permission !== "granted") {
-                    Notification.requestPermission();
-                }
-
-                btn.innerText = "⏹ Detener Monitor";
-                btn.classList.add('stop');
-                document.getElementById('status').innerText = "Monitoreando...";
-
-                // Auto hide on monitoring start
-                if (window.innerWidth < 600) {
-                    const sidebar = document.getElementById('sidebar');
-                    sidebar.style.display = 'none';
-                    setTimeout(() => { map.invalidateSize(); }, 100);
-                }
-
-                updatePositions(); // Immediate first run
-                monitoringInterval = setInterval(updatePositions, 15000); // 15s refresh
-            }
-        }
-
-        async function updatePositions() {
-            try {
-                // Use BusAPI instead of direct axios
-                const lineIds = Array.from(selectedLines);
-                const buses = await BusAPI.getBusPositions(lineIds);
-
-                // Clear old markers
-                busMarkers.forEach(m => map.removeLayer(m));
-                busMarkers = [];
-
-                const center = userMarker.getLatLng();
-                const radius = userCircle.getRadius();
-                const now = Date.now();
-
-                buses.forEach(bus => {
-                    const busLatLng = L.latLng(bus.latitud || bus.lat, bus.longitud || bus.lng);
-
-                    // Add marker
-                    const marker = L.marker(busLatLng, { icon: busIcon })
-                        .bindTooltip(`${bus.linea} (#${bus.interno})`, { direction: 'top', className: 'marker-label' })
-                        .addTo(map);
-                    busMarkers.push(marker);
-
-                    // Check alert
-                    const distance = center.distanceTo(busLatLng);
-                    if (distance <= radius) {
-                        const lastTime = lastNotificationTime[bus.linea] || 0;
-                        if (now - lastTime > 120000) { // 2 min cooldown
-                            if (Notification.permission === "granted") {
-                                new Notification("¡Colectivo en Rango!", {
-                                    body: `${bus.linea} a ${Math.round(distance)}m.`,
-                                    icon: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png'
-                                });
-                                lastNotificationTime[bus.linea] = now;
-                            }
-                        }
-                    }
-                });
-
-                document.getElementById('lastUpdate').innerText = `Última act: ${new Date().toLocaleTimeString()} (${buses.length} buses)`;
-
-            } catch (e) {
-                console.error(e);
-                document.getElementById('status').innerText = "Error conexión...";
-            }
-        }
-
-        // Init
-        document.addEventListener('bus-api-ready', () => {
-            fetchLines();
-        });
-
-        // Fallback
-        setTimeout(() => {
-            if (availableLines.length === 0) {
-                console.log("Fallback init");
-                fetchLines();
-            }
-        }, 2000);
     </script>
+
 </body>
 
 </html>
