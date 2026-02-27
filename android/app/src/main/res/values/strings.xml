@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Tucuman Bus Radar</string>
-    <string name="title_activity_main">Tucuman Bus Radar</string>
-    <string name="package_name">com.antigravity.redbus</string>
-    <string name="custom_url_scheme">com.antigravity.redbus</string>
-</resources>
