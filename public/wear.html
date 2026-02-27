@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bus Radar Wear</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --background: #000000;
+            --text: #ffffff;
+            --accent: #ef4444;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--background);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .container {
+            width: 90%;
+            height: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-around;
+            border-radius: 50%;
+            /* Circle for Wear OS */
+            padding: 5%;
+        }
+
+        .line-badge {
+            background: var(--primary);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .info {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 2px 0;
+        }
+
+        .eta {
+            font-size: 32px;
+            color: #10b981;
+            font-weight: 900;
+        }
+
+        .dist {
+            font-size: 14px;
+            color: #9ca3af;
+        }
+
+        button {
+            background: #374151;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        button:active {
+            background: #4b5563;
+        }
+
+        #status {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .loading {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div id="content">
+            <div class="line-badge" id="line-name">--</div>
+            <div class="info">Próximo en:</div>
+            <div class="eta" id="eta-time">-- min</div>
+            <div class="dist" id="eta-dist">-- m</div>
+            <button onclick="updateData()">Actualizar</button>
+        </div>
+        <div id="status">Cargando...</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="api.js"></script>
+    <script src="geometry.js"></script>
+
+    <script>
+        let lastKnownLine = localStorage.getItem('last_selected_line') || null;
+
+        async function updateData() {
+            const statusEl = document.getElementById('status');
+            const etaTimeEl = document.getElementById('eta-time');
+            const etaDistEl = document.getElementById('eta-dist');
+            const lineNameEl = document.getElementById('line-name');
+
+            statusEl.innerText = "Buscando...";
+            statusEl.classList.add('loading');
+
+            try {
+                // For simplified version, we just get the user location and the last selected line
+                // In a real app, this would be more complex, but for a prototype:
+                const pos = await BusAPI.getCurrentPosition();
+
+                // If no line selected, we'll try to find the closest one
+                if (!lastKnownLine) {
+                    const lines = await BusAPI.getLines();
+                    // Just take the first one for demo purposes if nothing else
+                    lastKnownLine = lines[0].codLinea;
+                }
+
+                lineNameEl.innerText = lastKnownLine;
+
+                const route = await BusAPI.getRoute(lastKnownLine);
+                const path = route.nodos.map(n => ({ lat: n.latitud, lng: n.longitud }));
+
+                const positions = await BusAPI.getBusPositions([lastKnownLine]);
+
+                if (positions && positions.length > 0) {
+                    // Simple arrival calculation
+                    let minDist = Infinity;
+                    let minTime = Infinity;
+
+                    positions.forEach(bus => {
+                        const busPoint = { lat: bus.latitud, lng: bus.longitud };
+                        const dist = Geometry.smartDistanceAlongRoute(busPoint, pos, path);
+
+                        if (dist >= 0) {
+                            const velocity = bus.velocidad || 20;
+                            const time = (dist / ((velocity * 1000) / 60));
+                            if (time < minTime) {
+                                minTime = time;
+                                minDist = dist;
+                            }
+                        }
+                    });
+
+                    if (minTime !== Infinity) {
+                        etaTimeEl.innerText = Math.round(minTime) + " min";
+                        etaDistEl.innerText = Math.round(minDist) + " m";
+                        statusEl.innerText = "Sincronizado";
+                    } else {
+                        etaTimeEl.innerText = "--";
+                        etaDistEl.innerText = "Sin buses cerca";
+                        statusEl.innerText = "Fuera de alcance";
+                    }
+                } else {
+                    etaTimeEl.innerText = "--";
+                    etaDistEl.innerText = "Sin buses";
+                    statusEl.innerText = "Sin datos";
+                }
+
+            } catch (err) {
+                console.error(err);
+                statusEl.innerText = "Error: " + err.message;
+            } finally {
+                statusEl.classList.remove('loading');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('bus-api-ready', updateData);
+        // Fallback if event already fired
+        setTimeout(() => {
+            if (document.getElementById('eta-time').innerText === '-- min') {
+                updateData();
+            }
+        }, 2000);
+    </script>
+</body>
+
+</html>

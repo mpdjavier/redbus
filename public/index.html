@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tucumán Bus Radar - Destino</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --surface: #ffffff;
+            --background: #f3f4f6;
+            --text: #1f2937;
+            --text-secondary: #6b7280;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            background: var(--background);
+            color: var(--text);
+        }
+
+        /* Sidebar & Panel */
+        #panel {
+            width: 380px;
+            background: var(--surface);
+            display: flex;
+            flex-direction: column;
+            z-index: 2000;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .panel-header {
+            padding: 12px 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 4px 0;
+            background: linear-gradient(to right, #2563eb, #7c3aed);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* Search Container */
+        .search-container {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            padding-left: 40px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Autocomplete */
+        #autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-top: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            display: none;
+        }
+
+        .autocomplete-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background 0.15s;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-item:hover {
+            background: #f9fafb;
+        }
+
+        /* Content Area */
+        #content {
+            flex-grow: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 0;
+            max-height: calc(100vh - 280px);
+            -webkit-overflow-scrolling: touch;
+            /* Smooth scrolling on iOS */
+            scroll-behavior: smooth;
+        }
+
+        /* Force scrollbar to be visible */
+        #content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        #content::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        #content::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Line Cards */
+        .line-card {
+            padding: 16px 24px;
+            border-bottom: 1px solid #f3f4f6;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .line-card:hover {
+            background: #f9fafb;
+        }
+
+        .line-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .line-info {
+            flex-grow: 1;
+        }
+
+        .line-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .line-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Back Button */
+        #back-btn {
+            display: none;
+            padding: 8px 16px;
+            background: #e5e7eb;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 12px;
+            transition: background 0.2s;
+        }
+
+        #back-btn:hover {
+            background: #d1d5db;
+        }
+
+        /* Map */
+        #map {
+            flex-grow: 1;
+            height: 100%;
+        }
+
+        /* Progress Bar */
+        #calculating-bar {
+            display: none;
+            margin-top: 10px;
+        }
+
+        /* Mobile Responsive - Collapsible Bottom Panel */
+        .mobile-only {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            #panel {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                height: 70vh;
+                max-height: none;
+                border-radius: 16px 16px 0 0;
+                box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                z-index: 1000;
+                order: 2;
+            }
+
+            #panel.collapsed {
+                transform: translateY(calc(100% - 50px));
+            }
+
+            #toggle-panel {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                border-bottom: 1px solid #e5e7eb;
+            }
+
+            #map {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100%;
+                height: 100%;
+                order: 1;
+            }
+
+            #content {
+                max-height: calc(70vh - 280px);
+            }
+
+            .panel-header {
+                padding: 10px 16px 8px 16px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .line-card {
+                padding: 10px 16px;
+                margin-bottom: 8px;
+            }
+
+            .btn {
+                padding: 6px 12px;
+                font-size: 13px;
+                border-radius: 8px;
+            }
+
+            #toggle-panel {
+                height: 40px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .mobile-only {
+                display: none !important;
+            }
+        }
+
+        /* Floating Status Bar */
+        #route-status-float {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            padding: 8px 18px;
+            border-radius: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            z-index: 5000;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--text);
+            max-width: 85%;
+            white-space: nowrap;
+        }
+
+        #route-status-float a {
+            color: var(--primary);
+            text-decoration: underline;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(37, 99, 235, 0.05);
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            #route-status-float {
+                top: 15px;
+                bottom: auto;
+                font-size: 12px;
+                padding: 6px 14px;
+            }
+
+            .point-selector-row {
+                display: flex;
+                justify-content: center;
+                gap: 12px;
+                margin: 12px 0;
+                align-items: center;
+            }
+
+            .circle-btn {
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                border: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                font-size: 18px;
+                color: white;
+                cursor: pointer;
+                transition: all 0.2s;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            }
+
+            .circle-btn.origin {
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            }
+
+            .circle-btn.dest {
+                background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            }
+
+            .circle-btn.gps {
+                background: #e0f2fe;
+                color: #0369a1;
+                border: 1.5px solid #bae6fd;
+                font-size: 20px;
+                width: 44px;
+                height: 44px;
+                box-shadow: 0 2px 6px rgba(186, 230, 253, 0.4);
+            }
+
+            .circle-btn.fav {
+                background: #fef3c7;
+                color: #b45309;
+                border: 1.5px solid #fde68a;
+                font-size: 20px;
+                width: 44px;
+                height: 44px;
+            }
+
+            .circle-btn.fav.active {
+                background: #fbbf24;
+                color: white;
+                border-color: #f59e0b;
+            }
+
+            .circle-btn:active {
+                transform: scale(0.92);
+            }
+
+            .circle-btn.loading {
+                animation: pulse-loading 1.5s infinite;
+                opacity: 0.6;
+            }
+
+            @keyframes pulse-loading {
+                0% {
+                    transform: scale(1);
+                }
+
+                50% {
+                    transform: scale(1.1);
+                }
+
+                100% {
+                    transform: scale(1);
+                }
+            }
+
+            .circle-label {
+                font-size: 10px;
+                font-weight: 600;
+                color: #6b7280;
+                text-align: center;
+                margin-top: 4px;
+                text-transform: uppercase;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="panel">
+        <!-- Mobile Toggle Button -->
+        <button id="toggle-panel" class="mobile-only" onclick="togglePanel()"
+            style="display: none; width: 100%; padding: 8px; background: transparent; border: none; cursor: pointer; font-size: 24px; color: #6b7280;">
+            <span id="toggle-icon">▼</span>
+        </button>
+
+        <div class="panel-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <button id="back-btn" onclick="goBack()" style="padding: 4px 8px; font-size: 12px; display: none;">←
+                    Volver</button>
+                <div style="flex-grow: 1;"></div>
+                <button id="clear-btn" onclick="resetSearch()"
+                    style="padding: 4px 10px; background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;">🧹
+                    Limpiar</button>
+            </div>
+            <h1>Bus Radar <span id="build-timestamp" style="font-size: 12px; color: #9ca3af; font-weight: 400;"></span>
+            </h1>
+            <p class="subtitle" id="status-text">Selecciona los puntos A y B en el mapa.</p>
+
+
+            <!-- Compact Point Selection Row -->
+            <div class="point-selector-row">
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <button id="select-origin-btn" class="circle-btn origin" title="Seleccionar Origen (A)">A</button>
+                    <span class="circle-label">Origen</span>
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <button id="gps-btn" class="circle-btn gps" title="Usar Mi Ubicación">📍</button>
+                    <span class="circle-label">GPS</span>
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <button id="fav-home-btn" class="circle-btn fav"
+                        title="Hogar (Mantén presionado para guardar)">🏠</button>
+                    <span class="circle-label">Hogar</span>
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <button id="fav-work-btn" class="circle-btn fav"
+                        title="Trabajo (Mantén presionado para guardar)">💼</button>
+                    <span class="circle-label">Trabajo</span>
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <button id="select-dest-btn" class="circle-btn dest" title="Seleccionar Destino (B)">B</button>
+                    <span class="circle-label">Destino</span>
+                </div>
+            </div>
+
+            <div id="actions-panel" style="display: none; justify-content: center; margin-bottom: 8px;">
+                <button id="view-all-btn" onclick="viewAllOnMap()"
+                    style="padding: 6px 14px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);">
+                    🗺️ Ver todo en el mapa
+                </button>
+            </div>
+
+            <div id="dest-display"
+                style="margin-top: 4px; padding: 6px 12px; background: #fef2f2; border-radius: 6px; font-size: 11px; color: #991b1b; display: none; text-align: center;">
+                <strong>📍 Destino fijado</strong>
+            </div>
+
+            <!-- Walking Distance Control -->
+            <div style="margin: 16px 0; padding: 12px; background: #f9fafb; border-radius: 8px;">
+                <label style="display: block; font-size: 13px; color: #6b7280; margin-bottom: 8px;">
+                    🚶 Distancia máxima de caminata: <strong id="walk-dist-label">800m</strong>
+                </label>
+                <input type="range" id="walk-distance-slider" min="200" max="1500" step="100" value="800"
+                    style="width: 100%; cursor: pointer;">
+            </div>
+
+
+            <div id="calculating-bar" style="display:none; margin-top: 10px;">
+                <div style="height:4px; background:#e5e7eb; border-radius:2px; overflow:hidden;">
+                    <div id="progress-fill"
+                        style="width:0%; height:100%; background:var(--primary); transition: width 0.3s;"></div>
+                </div>
+                <div style="font-size:11px; color:#6b7280; text-align:right; margin-top:4px;">Analizando rutas...</div>
+            </div>
+        </div>
+
+        <div id="content">
+            <!-- Dynamic Content -->
+            <div id="empty-state" style="padding: 40px; text-align: center; color: #9ca3af;">
+                <div style="font-size: 48px; margin-bottom: 16px;">🗺️</div>
+                <p>Selecciona el Punto A (origen) y Punto B (destino) en el mapa para ver las líneas de colectivo
+                    disponibles.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="route-status-float"></div>
+    <div id="map"></div>
+
+    <!-- Debug Console (visible on screen) -->
+    <div id="debug-console"
+        style="position: fixed; bottom: 0; left: 0; right: 0; max-height: 200px; background: rgba(0,0,0,0.95); color: #0f0; font-family: monospace; font-size: 11px; padding: 10px; overflow-y: auto; z-index: 9999; display: none; border-top: 2px solid #0f0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <strong style="color: #0ff;">🐛 DEBUG LOG</strong>
+            <div style="display: flex; gap: 6px;">
+                <button onclick="copyDebugLog()"
+                    style="background: #0a0; color: white; border: none; padding: 4px 10px; cursor: pointer; font-size: 11px; border-radius: 3px; font-weight: bold;">📋
+                    COPIAR</button>
+                <button onclick="clearDebugLog()"
+                    style="background: #f80; color: white; border: none; padding: 4px 10px; cursor: pointer; font-size: 11px; border-radius: 3px;">🗑️</button>
+                <button onclick="document.getElementById('debug-console').style.display='none'"
+                    style="background: #f00; color: white; border: none; padding: 4px 10px; cursor: pointer; font-size: 11px; border-radius: 3px;">✕</button>
+            </div>
+        </div>
+        <div id="debug-output" style="font-size: 10px; line-height: 1.4;"></div>
+    </div>
+
+    <!-- Debug Toggle Button -->
+    <button id="debug-toggle" onclick="toggleDebug()"
+        style="position: fixed; bottom: 15px; right: 15px; background: rgba(0,0,0,0.8); color: #0f0; border: 2px solid #0f0; padding: 10px 14px; cursor: pointer; z-index: 10000; font-family: monospace; font-size: 12px; border-radius: 6px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">
+        🐛 DEBUG
+    </button>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="api.js"></script>
+    <script src="geometry.js"></script>
+
+    <script>
+        // Setup Map
+        const map = L.map('map').setView([-26.83, -65.20], 13);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        // Global Variables
+        let currentLines = [];
+        let maxWalkDistance = 800;
+        let currentRouteLayer = null;
+        let routeResults = [];
+        let currentSelectedLineId = null;
+
+        // Update timestamp
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        document.getElementById('build-timestamp').textContent = `${day}/${month} ${hours}:${minutes}`;
+
+        // Walking distance slider
+        document.getElementById('walk-distance-slider').addEventListener('input', (e) => {
+            maxWalkDistance = parseInt(e.target.value);
+            document.getElementById('walk-dist-label').textContent = maxWalkDistance + 'm';
+        });
+
+        // Initialize - Load lines
+        async function init() {
+            try {
+                currentLines = await BusAPI.getLines();
+                BusAPI.setLinesCache(currentLines); // Save to cache for getBusPositions
+                console.log(`Loaded ${currentLines.length} unique lines`);
+            } catch (e) {
+                console.error("Failed to load lines", e);
+            }
+        }
+        init();
+
+        // === COORDINATE SELECTION ===
+        let destinationLocation = null;
+        let originLocation = null;
+        let originMarker = null;
+        let destMarker = null;
+        let currentTripIndices = null; // Store specific indices for Origin->Dest trip
+
+        // GPS Button - Updated for Capacitor native support
+        document.getElementById('gps-btn').addEventListener('click', async () => {
+            const gpsBtn = document.getElementById('gps-btn');
+            try {
+                gpsBtn.classList.add('loading');
+                document.getElementById('status-text').innerText = "Obteniendo ubicación...";
+                const pos = await BusAPI.getCurrentPosition();
+                const lat = pos.lat;
+                const lng = pos.lng;
+
+                // Remove previous origin marker
+                if (originMarker) {
+                    map.removeLayer(originMarker);
+                }
+
+                // Create custom origin icon
+                const originIcon = L.divIcon({
+                    className: 'origin-marker',
+                    html: '<div style="background:#10b981; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">A</div>',
+                    iconSize: [32, 32]
+                });
+
+                // Add marker and update location
+                originMarker = L.marker([lat, lng], { icon: originIcon }).addTo(map);
+                originLocation = { lat, lng };
+
+                // Update UI state
+                const originBtn = document.getElementById('select-origin-btn');
+                originBtn.innerHTML = '✓';
+                originBtn.style.opacity = '0.8';
+
+                updateStatusInResults("🟢 Punto A seleccionado (GPS)");
+                map.setView([lat, lng], 15);
+
+                if (destinationLocation) {
+                    findBestLines(destinationLocation, originLocation);
+                }
+            } catch (err) {
+                console.error("No se pudo obtener ubicación:", err);
+                updateStatusInResults("Error GPS: " + (err.message || "Permiso denegado"));
+                alert('No se pudo obtener tu ubicación. Verifica que el GPS de tu celular esté encendido y que la app tenga permisos.');
+            } finally {
+                gpsBtn.classList.remove('loading');
+            }
+        });
+
+        // === FAVORITES LOGIC ===
+        function setupFavorite(id, type) {
+            const btn = document.getElementById(id);
+            let longPressTimer;
+
+            // Load saved state
+            const saved = localStorage.getItem(`fav_${type}`);
+            if (saved) btn.classList.add('active');
+
+            btn.addEventListener('click', () => {
+                const savedData = localStorage.getItem(`fav_${type}`);
+                if (!savedData) {
+                    alert(`Mantén presionado el icono de ${type === 'home' ? 'Hogar' : 'Trabajo'} para guardar tu ubicación actual.`);
+                    return;
+                }
+
+                const loc = JSON.parse(savedData);
+                console.log(`Setting favorite ${type}:`, loc);
+
+                const lat = loc.lat;
+                const lng = loc.lng;
+
+                // Apply to current selection mode or default to A if nothing selected
+                const mode = mapSelectionMode || (originLocation ? 'destination' : 'origin');
+
+                if (mode === 'destination') {
+                    if (destMarker) map.removeLayer(destMarker);
+                    const destIcon = L.divIcon({
+                        className: 'dest-marker',
+                        html: '<div style="background:#ef4444; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">B</div>',
+                        iconSize: [32, 32]
+                    });
+                    destMarker = L.marker([lat, lng], { icon: destIcon }).addTo(map);
+                    destinationLocation = { lat, lng };
+                    document.getElementById('select-dest-btn').innerHTML = '✓';
+                    document.getElementById('dest-display').style.display = 'block';
+                } else {
+                    if (originMarker) map.removeLayer(originMarker);
+                    const originIcon = L.divIcon({
+                        className: 'origin-marker',
+                        html: '<div style="background:#10b981; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">A</div>',
+                        iconSize: [32, 32]
+                    });
+                    originMarker = L.marker([lat, lng], { icon: originIcon }).addTo(map);
+                    originLocation = { lat, lng };
+                    document.getElementById('select-origin-btn').innerHTML = '✓';
+                }
+
+                map.setView([lat, lng], 15);
+                updateStatusInResults(`📍 Ubicación de ${type === 'home' ? 'Hogar' : 'Trabajo'} seleccionada`);
+
+                if (originLocation && destinationLocation) {
+                    findBestLines(destinationLocation, originLocation);
+                }
+            });
+
+            // Long press to save (works on mobile)
+            btn.addEventListener('touchstart', (e) => {
+                longPressTimer = setTimeout(() => saveCurrentAsFavorite(type, btn), 800);
+            });
+            btn.addEventListener('touchend', () => clearTimeout(longPressTimer));
+            btn.addEventListener('mousedown', () => {
+                longPressTimer = setTimeout(() => saveCurrentAsFavorite(type, btn), 800);
+            });
+            btn.addEventListener('mouseup', () => clearTimeout(longPressTimer));
+        }
+
+        function saveCurrentAsFavorite(type, btn) {
+            const center = map.getCenter();
+            const data = { lat: center.lat, lng: center.lng };
+            localStorage.setItem(`fav_${type}`, JSON.stringify(data));
+            btn.classList.add('active');
+            alert(`✅ ¡${type === 'home' ? 'Hogar' : 'Trabajo'} guardado en esta ubicación!`);
+        }
+
+        setupFavorite('fav-home-btn', 'home');
+        setupFavorite('fav-work-btn', 'work');
+
+        // Map Selection Mode
+        let mapSelectionMode = null;
+
+        // Button handlers for selecting points
+        document.getElementById('select-origin-btn').addEventListener('click', () => {
+            mapSelectionMode = 'origin';
+            map.getContainer().style.cursor = 'crosshair';
+            document.getElementById('status-text').innerText = "🟢 Haz clic en el mapa para seleccionar el Punto A (Origen)";
+            document.getElementById('select-origin-btn').style.opacity = '0.7';
+        });
+
+        document.getElementById('select-dest-btn').addEventListener('click', () => {
+            mapSelectionMode = 'destination';
+            map.getContainer().style.cursor = 'crosshair';
+            document.getElementById('status-text').innerText = "🔴 Haz clic en el mapa para seleccionar el Punto B (Destino)";
+            document.getElementById('select-dest-btn').style.opacity = '0.7';
+        });
+
+        map.on('click', async (e) => {
+            if (!mapSelectionMode) return;
+
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+
+            // Custom marker icons
+            const originIcon = L.divIcon({
+                className: 'origin-marker',
+                html: '<div style="background:#10b981; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">A</div>',
+                iconSize: [32, 32]
+            });
+
+            const destIcon = L.divIcon({
+                className: 'dest-marker',
+                html: '<div style="background:#ef4444; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">B</div>',
+                iconSize: [32, 32]
+            });
+
+            if (mapSelectionMode === 'destination') {
+                if (destMarker) map.removeLayer(destMarker);
+                destMarker = L.marker([lat, lng], { icon: destIcon }).addTo(map);
+                destinationLocation = { lat, lng };
+
+                const destBtn = document.getElementById('select-dest-btn');
+                destBtn.innerHTML = '✓';
+                destBtn.style.opacity = '0.8';
+
+                document.getElementById('dest-display').style.display = 'block';
+                document.getElementById('status-text').innerText = "🔴 Punto B seleccionado";
+
+                if (originLocation) {
+                    findBestLines(destinationLocation, originLocation);
+                }
+            } else {
+                if (originMarker) map.removeLayer(originMarker);
+                originMarker = L.marker([lat, lng], { icon: originIcon }).addTo(map);
+                originLocation = { lat, lng };
+
+                const originBtn = document.getElementById('select-origin-btn');
+                originBtn.innerHTML = '✓';
+                originBtn.style.opacity = '0.8';
+
+                document.getElementById('status-text').innerText = "🟢 Punto A seleccionado";
+
+                if (destinationLocation) {
+                    findBestLines(destinationLocation, originLocation);
+                }
+            }
+
+            map.getContainer().style.cursor = '';
+            mapSelectionMode = null;
+        });
+
+
+
+        // === FIND BEST LINES ===
+        async function findBestLines(dest, origin = null) {
+            console.log(`findBestLines called. Lines available: ${currentLines.length}`);
+            console.log(`Destination:`, dest);
+            console.log(`Origin:`, origin);
+
+            document.getElementById('status-text').innerText = "Buscando líneas cercanas...";
+            document.getElementById('calculating-bar').style.display = 'block';
+            document.getElementById('content').innerHTML = '<div style="padding:20px; text-align:center;">Analizando recorridos...</div>';
+
+            const results = [];
+            const total = currentLines.length;
+            let processed = 0;
+
+            // Process in batches
+            const BATCH_SIZE = 5;
+            const queue = [...currentLines];
+
+            async function processBatch() {
+                const batch = queue.splice(0, BATCH_SIZE);
+                if (batch.length === 0) {
+                    renderResults(results);
+                    return;
+                }
+
+                const promises = batch.map(async (line) => {
+                    try {
+                        let route = await BusAPI.getRoute(line.codLinea);
+                        if (!route || !route.nodos) return null;
+
+                        const path = route.nodos.map(n => ({ lat: n.latitud, lng: n.longitud }));
+
+                        // Calculate distance to destination
+                        const projDest = Geometry.projectOnPolyline(dest, path);
+                        const distDest = projDest.dist;
+
+                        if (distDest > maxWalkDistance) return null;
+
+                        let distOrigin = 0;
+                        if (origin) {
+                            const projOrigin = Geometry.projectOnPolyline(origin, path);
+                            distOrigin = projOrigin.dist;
+
+                            if (distOrigin > maxWalkDistance) return null;
+
+                            // Check if origin->dest is reachable on this route
+                            const routeDist = Geometry.smartDistanceAlongRoute(origin, dest, path);
+                            if (routeDist < 0) return null; // Unreachable or wrong direction
+                        }
+
+                        return {
+                            line,
+                            distOrigin,
+                            distDest,
+                            totalWalk: distOrigin + distDest,
+                            path
+                        };
+                    } catch (e) {
+                        return null;
+                    }
+                });
+
+                const batchResults = await Promise.all(promises);
+                const validInBatch = batchResults.filter(r => r);
+                validInBatch.forEach(r => results.push(r));
+
+                console.log(`Batch complete: ${validInBatch.length}/${batch.length} valid routes in this batch`);
+
+                processed += batch.length;
+                const progressPct = processed / total;
+                document.getElementById('progress-fill').style.width = (progressPct * 100) + '%';
+
+                document.getElementById('status-text').innerText = `Analizando líneas... ${processed}/${total} (${results.length} válidas)`;
+
+                setTimeout(processBatch, 50);
+            }
+
+            processBatch();
+        }
+
+
+
+        async function renderResults(results) {
+            routeResults = results; // Store for later use
+            console.log(`Route search complete. Valid routes found: ${results.length}`);
+
+            document.getElementById('calculating-bar').style.display = 'none';
+
+            if (results.length === 0) {
+                document.getElementById('content').innerHTML = '<div style="padding:40px; text-align:center; color:#9ca3af;"><div style="font-size:48px; margin-bottom:16px;">😕</div><p>No se encontraron líneas cercanas.</p><p style="font-size:13px;">Intenta aumentar la distancia de caminata o busca otra dirección.</p></div>';
+                document.getElementById('status-text').innerText = "Sin resultados";
+                return;
+            }
+
+            // Sort by total walking distance
+            results.sort((a, b) => a.totalWalk - b.totalWalk);
+
+            document.getElementById('status-text').innerText = `Consultando disponibilidad de ${results.length} líneas...`;
+
+            // First, render the cards with loading state
+            let html = '';
+            results.forEach(item => {
+                html += `
+                    <div class="line-card" onclick="selectLine('${item.line.codLinea}')" id="line-card-${item.line.codLinea}">
+                        <div class="line-info" style="width: 100%;">
+                            <div class="line-name">${item.line.descripcion}</div>
+                            <div class="line-buses" id="buses-${item.line.codLinea}" style="margin-top: 6px; font-size: 12px; color: #9ca3af;">
+                                ⏳ Consultando...
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('content').innerHTML = html;
+
+            // Now fetch bus counts and arrival times for each line
+            console.log('🔍 Fetching bus counts and arrival times for all lines...');
+            const lineIds = results.map(r => r.line.codLinea);
+
+            // Fetch bus positions and calculate arrival times in parallel
+            const busDataPromises = lineIds.map(async (lineId) => {
+                try {
+                    const positions = await BusAPI.getBusPositions([lineId]);
+                    const count = positions ? positions.length : 0;
+
+                    // Calculate next bus arrival if we have origin and positions
+                    let arrivalInfo = null;
+                    if (count > 0 && originLocation) {
+                        const result = results.find(r => r.line.codLinea == lineId);
+                        if (result) {
+                            arrivalInfo = calculateNextBusArrival(positions, result.path, originLocation, destinationLocation);
+                        }
+                    }
+
+                    // Calculate travel time from origin to destination
+                    let travelInfo = null;
+                    if (originLocation && destinationLocation) {
+                        const result = results.find(r => r.line.codLinea == lineId);
+                        if (result) {
+                            travelInfo = calculateTravelTime(result.path, originLocation, destinationLocation);
+                        }
+                    }
+
+                    return { lineId, count, arrivalInfo, travelInfo };
+                } catch (e) {
+                    console.error(`Error fetching buses for line ${lineId}:`, e);
+                    return { lineId, count: 0, arrivalInfo: null, travelInfo: null };
+                }
+            });
+
+            const busData = await Promise.all(busDataPromises);
+
+            console.log('✅ Bus data received:', busData);
+
+            // Sort results by arrival time AT DESTINATION (shortest first)
+            const sortedResults = [...results];
+            sortedResults.sort((a, b) => {
+                const aData = busData.find(d => d.lineId == a.line.codLinea);
+                const bData = busData.find(d => d.lineId == b.line.codLinea);
+
+                // ETA at Destination = Time to Origin + Travel Time
+                const aArrival = aData?.arrivalInfo?.timeMinutes ?? Infinity;
+                const aTravel = aData?.travelInfo?.timeMinutes ?? 0;
+                const aTotal = aArrival === Infinity ? Infinity : aArrival + aTravel;
+
+                const bArrival = bData?.arrivalInfo?.timeMinutes ?? Infinity;
+                const bTravel = bData?.travelInfo?.timeMinutes ?? 0;
+                const bTotal = bArrival === Infinity ? Infinity : bArrival + bTravel;
+
+                if (aTotal !== bTotal) return aTotal - bTotal;
+                return (bData?.count ?? 0) - (aData?.count ?? 0);
+            });
+
+            // Re-render with sorted results
+            html = '';
+            sortedResults.forEach(item => {
+                html += `
+                    <div class="line-card" onclick="selectLine('${item.line.codLinea}')" id="line-card-${item.line.codLinea}">
+                        <div class="line-info" style="width: 100%;">
+                            <div class="line-name">${item.line.descripcion}</div>
+                            <div class="line-buses" id="buses-${item.line.codLinea}" style="margin-top: 6px; font-size: 12px; color: #9ca3af;">
+                                ⏳ Consultando...
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('content').innerHTML = html;
+
+            // Update each card with bus count and arrival time
+            busData.forEach(({ lineId, count, arrivalInfo, travelInfo }) => {
+                const busElement = document.getElementById(`buses-${lineId}`);
+                if (busElement) {
+                    let html = '';
+                    if (count > 0) {
+                        html += `<span style="color: #10b981; font-weight: 600;">🚌 ${count} colectivo${count > 1 ? 's' : ''} activo${count > 1 ? 's' : ''}</span>`;
+
+                        if (arrivalInfo) {
+                            html += `<br><span style="color: #2563eb; font-weight: 600;">⏱️ Próximo en ${arrivalInfo.timeMinutes} min (${arrivalInfo.distance}m)</span>`;
+                        } else if (originLocation) {
+                            html += `<br><span style="color: #f59e0b; font-weight: 500;">⚠️ Ninguno se acerca al origen</span>`;
+                        }
+
+                        // Show travel time if available
+                        if (travelInfo) {
+                            html += `<br><span style="color: #8b5cf6; font-weight: 600;">🕐 Viaje: ~${travelInfo.timeMinutes} min (${(travelInfo.distance / 1000).toFixed(1)} km)</span>`;
+                        }
+                    } else {
+                        html = `<span style="color: #ef4444; font-weight: 500;">⚠️ Sin colectivos activos</span>`;
+                    }
+                    busElement.innerHTML = html;
+                }
+            });
+
+            updateStatusInResults(`Se encontraron ${results.length} líneas cercanas`);
+
+            // Show "Ver Resultados" button on mobile
+            const viewResultsBtn = document.getElementById('view-results-btn');
+            if (viewResultsBtn && window.innerWidth <= 768) {
+                viewResultsBtn.style.display = 'block';
+            }
+        }
+
+        let walkingLayerGroup = L.layerGroup(); // Group for walking lines
+
+        function selectLine(lineId, isReversed = false) {
+            console.log('Selected line:', lineId);
+            currentSelectedLineId = lineId;
+            localStorage.setItem('last_selected_line', lineId);
+
+            // Find the route in results
+            const result = routeResults.find(r => r.line.codLinea == lineId);
+            if (!result) return;
+
+            // Remove previous route
+            if (currentRouteLayer) {
+                map.removeLayer(currentRouteLayer);
+            }
+            if (window.routeDecorator) {
+                map.removeLayer(window.routeDecorator);
+            }
+            if (walkingLayerGroup) {
+                walkingLayerGroup.clearLayers();
+            }
+            walkingLayerGroup.addTo(map);
+
+            // Clear multi-route if active
+            multiRouteLayers.forEach(l => map.removeLayer(l));
+            multiRouteLayers = [];
+
+            // Always display the complete route from the API
+            const pathToDisplay = result.path;
+
+            // Calculate exact trip segment indices for logic filtering
+            currentTripIndices = null;
+            if (originLocation && destinationLocation) {
+                currentTripIndices = Geometry.getTripSegmentIndices(originLocation, destinationLocation, pathToDisplay);
+                if (currentTripIndices) {
+                    console.log('🔒 Trip Segment Locked:', currentTripIndices);
+                }
+            }
+
+            // Directionality validation with OSM (Batch)
+            async function validateRouteDirection() {
+                const floatBar = document.getElementById('route-status-float');
+                try {
+                    floatBar.style.display = 'flex';
+                    floatBar.innerHTML = `🔍 Analizando flujo de colectivos...`;
+
+                    // 1. First, check actual bus movement (most reliable evidence)
+                    const busPositions = await BusAPI.getBusPositions(lineId);
+                    const motionCheck = Geometry.detectBusMotionInversion(busPositions, pathToDisplay);
+
+                    if (motionCheck.isMismatch) {
+                        console.warn(`🚨 Real-time Motion Inversion detected for ${lineId}! Reversing...`);
+                        floatBar.innerHTML = `<span style="color: #3b82f6; font-weight: bold;">🔄 Corrigiendo sentido (Movimiento)...</span>`;
+                        result.path.reverse();
+                        setTimeout(() => { selectLine(lineId, true); }, 300);
+                        return;
+                    }
+
+                    // 2. Fallback to OSM (Legal Traffic Law)
+                    floatBar.innerHTML = `🔍 Validando con OpenStreetMap...`;
+
+                    const sampleIndices = [];
+                    // Sample ~30 points spread evenly across the route
+                    for (let i = 0.03; i < 1.0; i += 0.033) {
+                        sampleIndices.push(Math.floor(pathToDisplay.length * i));
+                    }
+                    const finalIndices = [...new Set(sampleIndices)].filter(i => i < pathToDisplay.length - 1);
+                    const samplePoints = finalIndices.map(idx => pathToDisplay[idx]);
+
+                    const batchWays = await OSMAPI.getBatchWayDetails(samplePoints);
+
+                    let mismatchCount = 0;
+                    let matchCount = 0;
+                    let validOneWayCount = 0;
+
+                    let foundStreets = new Set();
+                    finalIndices.forEach((idx, i) => {
+                        const p1 = pathToDisplay[idx];
+                        const p2 = pathToDisplay[idx + 1];
+                        const bearing = Geometry.getBearing(p1, p2);
+
+                        // Find ways in batch results close to this specific sample point
+                        const nearbyWays = batchWays.filter(w => {
+                            if (!w.geometry) return false;
+                            return w.geometry.some(gp => {
+                                const dist = Geometry.getDistance(p1, { lat: gp.lat, lng: gp.lon || gp.lng });
+                                return dist < 80; // Match within search radius
+                            });
+                        });
+
+                        const check = Geometry.checkDirection(bearing, nearbyWays);
+                        if (check.wayResolved && check.wayResolved.tags.oneway && check.wayResolved.tags.oneway !== "no") {
+                            validOneWayCount++;
+                            if (check.isMismatch) mismatchCount++;
+                            else if (check.isExplicitMatch) matchCount++;
+
+                            if (check.wayResolved.tags.name) foundStreets.add(check.wayResolved.tags.name);
+                        }
+                    });
+
+                    console.log(`📊 Consensus (${lineId}): OK=${matchCount}, ERR=${mismatchCount}, OSMSets=${validOneWayCount}`);
+
+                    if (validOneWayCount > 0 && mismatchCount > matchCount) {
+                        console.error(`🚨 Inversion Verified for ${lineId}! (${mismatchCount} err) Reversing...`);
+                        floatBar.innerHTML = `<span style="color: #3b82f6; font-weight: bold;">🔄 Corrigiendo sentido...</span>`;
+                        result.path.reverse();
+                        setTimeout(() => { selectLine(lineId, true); }, 300);
+                        return;
+                    }
+
+                    const icon = (validOneWayCount > 0 && mismatchCount === 0) ? '✅' : 'ℹ️';
+                    const listStr = Array.from(foundStreets).slice(0, 3).join(', ');
+                    const infoText = validOneWayCount > 0
+                        ? `En: ${listStr}...`
+                        : 'Ruta cargada';
+
+                    floatBar.innerHTML =
+                        `<span>${icon} ${infoText}</span> <a href="#" onclick="window.reverseCurrentLine(); return false;">¿Invertir Sentido?</a>`;
+                } catch (e) {
+                    console.error("OSM Validation Error:", e);
+                    floatBar.innerHTML = `<span>⚠️ Error de validación</span> <a href="#" onclick="window.reverseCurrentLine(); return false;">¿Invertir Sentido?</a>`;
+                }
+            }
+
+            // Global helper for manual override
+            window.reverseCurrentLine = () => {
+                if (!currentSelectedLineId) return;
+                const res = routeResults.find(r => r.line.codLinea == currentSelectedLineId);
+                if (res) {
+                    res.path.reverse();
+                    selectLine(currentSelectedLineId, true);
+                }
+            };
+
+            if (!isReversed) { // Only validate direction if not already reversed
+                validateRouteDirection();
+            }
+
+            // Draw walking lines if we have origin/destination
+            if (originLocation) {
+                const proj = Geometry.projectOnPolyline(originLocation, pathToDisplay);
+                if (proj.point) {
+                    L.polyline([
+                        [originLocation.lat, originLocation.lng],
+                        [proj.point.lat, proj.point.lng]
+                    ], {
+                        color: '#6b7280',
+                        weight: 3,
+                        dashArray: '10, 10',
+                        opacity: 0.8
+                    }).addTo(walkingLayerGroup);
+                }
+            }
+
+            if (destinationLocation) {
+                const proj = Geometry.projectOnPolyline(destinationLocation, pathToDisplay);
+                if (proj.point) {
+                    L.polyline([
+                        [destinationLocation.lat, destinationLocation.lng],
+                        [proj.point.lat, proj.point.lng]
+                    ], {
+                        color: '#6b7280',
+                        weight: 3,
+                        dashArray: '10, 10', // Dashed line
+                        opacity: 0.8
+                    }).addTo(walkingLayerGroup);
+                }
+            }
+
+            // Draw route on map
+            // Style matches official miredbus (Red line, no arrows)
+            const latLngs = pathToDisplay.map(p => [p.lat, p.lng]);
+            currentRouteLayer = L.polyline(latLngs, {
+                color: '#ef4444', // Red color like official site
+                weight: 5,
+                opacity: 0.8
+            }).addTo(map);
+
+            // Add route direction arrows
+            window.routeDecorator = L.polylineDecorator(currentRouteLayer, {
+                patterns: [
+                    {
+                        offset: '5%',
+                        repeat: '20%',
+                        symbol: L.Symbol.arrowHead({
+                            pixelSize: 12,
+                            polygon: false,
+                            pathOptions: { stroke: true, color: '#ef4444', weight: 3, opacity: 0.9 }
+                        })
+                    }
+                ]
+            }).addTo(map);
+
+            // Fit map to route (include walking paths in bounds)
+            const bounds = currentRouteLayer.getBounds();
+            if (originLocation) bounds.extend([originLocation.lat, originLocation.lng]);
+            if (destinationLocation) bounds.extend([destinationLocation.lat, destinationLocation.lng]);
+
+            // First fit the bounds to see the whole path
+            map.fitBounds(bounds, { padding: [50, 50] });
+
+            // After a small delay or immediately, center specifically on ORIGIN if it exists
+            if (originLocation) {
+                setTimeout(() => {
+                    map.setView([originLocation.lat, originLocation.lng], 16);
+                }, 600);
+            }
+
+            updateStatusInResults(`🚌 Buscando colectivos de línea ${lineId}...`);
+
+            // Start tracking buses for this line
+            trackBuses(lineId);
+        }
+
+        // Bus tracking
+        let busMarkers = [];
+        let busTrackingInterval = null;
+
+        // Calculate arrival time for a specific bus
+        function calculateTimeForBus(bus, path, originPoint, destinationPoint = null) {
+            if (!bus || !path || !originPoint) return null;
+
+            const dest = destinationPoint || destinationLocation;
+            // Get specific indices for the trip on this route
+            const tripIndices = (originPoint && dest) ? Geometry.getTripSegmentIndices(originPoint, dest, path) : null;
+
+            const busPoint = { lat: bus.latitud, lng: bus.longitud };
+            let distance = -1;
+
+            if (tripIndices) {
+                // Strict filtering based on locked user trip leg
+                distance = Geometry.distanceToRouteIndex(busPoint, tripIndices.startIndex, path, bus.orientacion);
+            } else {
+                // Fallback if no destination
+                distance = Geometry.smartDistanceAlongRoute(busPoint, originPoint, path);
+            }
+
+            if (distance < 0) return null;
+
+            // Estimate time
+            const velocity = bus.velocidad || 20; // Default 20 km/h
+            const velocityMPerMin = (velocity * 1000) / 60;
+            const timeMinutes = distance / velocityMPerMin;
+
+            return {
+                distance: Math.round(distance),
+                timeMinutes: Math.round(timeMinutes),
+                velocity: Math.round(velocity)
+            };
+        }
+
+        // Calculate next bus arrival time to origin point
+        function calculateNextBusArrival(positions, path, originPoint, destinationPoint = null) {
+            if (!positions || positions.length === 0 || !originPoint) return null;
+
+            let closestBus = null;
+            let minTime = Infinity;
+
+            positions.forEach(bus => {
+                const info = calculateTimeForBus(bus, path, originPoint, destinationPoint);
+                if (info && info.timeMinutes < minTime) {
+                    minTime = info.timeMinutes;
+                    closestBus = info;
+                }
+            });
+
+            return closestBus;
+        }
+
+
+
+        // Detect correct route direction (handles bidirectional routes)
+        function getCorrectRouteDirection(path, originPoint, destPoint) {
+            // Function logic kept for reference but mostly unused now
+            if (!path || !originPoint || !destPoint) return { path: path, isReversed: false };
+            return { path: path, isReversed: false };
+        }
+
+        // Calculate estimated travel time from origin to destination along route
+        function calculateTravelTime(path, originPoint, destPoint) {
+            if (!path || !originPoint || !destPoint) return null;
+
+            // Calculate distance along the route from origin to destination
+            // Using smart calculation to handle loops/overlaps
+            const distance = Geometry.smartDistanceAlongRoute(originPoint, destPoint, path);
+
+            // If negative, destination comes before origin on the route (wrong direction)
+            if (distance < 0) return null;
+
+            // Average bus speed in km/h (considering stops, traffic, etc.)
+            const averageSpeed = 20; // km/h
+            const speedMPerMin = (averageSpeed * 1000) / 60; // meters per minute
+
+            // Calculate time in minutes
+            const timeMinutes = distance / speedMPerMin;
+
+            return {
+                distance: Math.round(distance),
+                timeMinutes: Math.round(timeMinutes)
+            };
+        }
+
+        async function trackBuses(lineId) {
+            // Clear previous tracking
+            if (busTrackingInterval) {
+                clearInterval(busTrackingInterval);
+            }
+            busMarkers.forEach(m => map.removeLayer(m));
+            busMarkers = [];
+
+            // Create custom bus icon
+            const busIcon = L.divIcon({
+                className: 'bus-marker',
+                html: '<div style="background:#ef4444; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold; border:2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3);">🚌</div>',
+                iconSize: [24, 24]
+            });
+
+            async function updateBuses() {
+                try {
+                    console.log(`🔍 Fetching bus positions for line ${lineId}...`);
+                    const positions = await BusAPI.getBusPositions([lineId]);
+                    console.log(`📍 Received ${positions ? positions.length : 0} bus positions`);
+
+                    // Clear old markers
+                    busMarkers.forEach(m => map.removeLayer(m));
+                    busMarkers = [];
+
+                    if (positions && positions.length > 0) {
+                        const result = routeResults.find(r => r.line.codLinea == lineId);
+
+                        positions.forEach(bus => {
+                            console.log(`🚌 Bus at: ${bus.latitud}, ${bus.longitud}, speed: ${bus.velocidad || 0} km/h`);
+
+                            // Calculate individual arrival time for this bus
+                            let arrivalLabel = '';
+                            if (result && originLocation) {
+                                const info = calculateTimeForBus(bus, result.path, originLocation, destinationLocation);
+                                if (info) {
+                                    arrivalLabel = `<div style="position: absolute; top: -25px; left: 50%; transform: translateX(-50%); background: white; color: #2563eb; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold; white-space: nowrap; border: 1px solid #2563eb; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">${info.timeMinutes} min</div>`;
+                                }
+                            }
+
+                            const customIcon = L.divIcon({
+                                className: 'bus-marker-wrapper',
+                                html: `
+                                    <div style="position: relative;">
+                                        ${arrivalLabel}
+                                        <div style="background:#ef4444; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold; border:2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3);">🚌</div>
+                                    </div>
+                                `,
+                                iconSize: [24, 24],
+                                iconAnchor: [12, 12]
+                            });
+
+                            const marker = L.marker([bus.latitud, bus.longitud], { icon: customIcon })
+                                .bindPopup(`<strong>Línea ${lineId}</strong><br>Velocidad: ${bus.velocidad || 0} km/h`)
+                                .addTo(map);
+                            busMarkers.push(marker);
+                        });
+                        console.log(`✅ Updated ${positions.length} bus positions for line ${lineId}`);
+
+                        // Calculate next bus arrival if origin is set
+                        if (result && originLocation) {
+                            const nextBus = calculateNextBusArrival(positions, result.path, originLocation);
+                            if (nextBus) {
+                                document.getElementById('status-text').innerText =
+                                    `🚌 ${positions.length} colectivo(s) • ⏱️ Próximo en ${nextBus.timeMinutes} min (${nextBus.distance}m)`;
+                                console.log(`⏱️ Next bus arrival: ${nextBus.timeMinutes} min, ${nextBus.distance}m away at ${nextBus.velocity} km/h`);
+                            } else {
+                                document.getElementById('status-text').innerText =
+                                    `🚌 ${positions.length} colectivo(s) • ⚠️ Ninguno se acerca al origen`;
+                            }
+                        } else {
+                            document.getElementById('status-text').innerText = `🚌 ${positions.length} colectivo(s) activo(s) en línea ${lineId}`;
+                        }
+                    } else {
+                        console.log(`⚠️ No buses found for line ${lineId}`);
+                        document.getElementById('status-text').innerText = `Sin colectivos activos en línea ${lineId}`;
+                    }
+                } catch (e) {
+                    console.error('❌ Error fetching bus positions:', e);
+                    document.getElementById('status-text').innerText = `Error al buscar colectivos`;
+                }
+            }
+
+            // Update immediately and then every 10 seconds
+            updateBuses();
+            busTrackingInterval = setInterval(updateBuses, 10000);
+        }
+
+        let multiRouteLayers = [];
+        const routeColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316'];
+
+        async function viewAllOnMap() {
+            console.log("Viewing all routes on map...");
+
+            // Clear regular tracking
+            if (busTrackingInterval) clearInterval(busTrackingInterval);
+            if (currentRouteLayer) map.removeLayer(currentRouteLayer);
+            if (window.routeDecorator) map.removeLayer(window.routeDecorator);
+            busMarkers.forEach(m => map.removeLayer(m));
+            busMarkers = [];
+            walkingLayerGroup.clearLayers();
+
+            // Clear previous multi-route layers
+            multiRouteLayers.forEach(l => map.removeLayer(l));
+            multiRouteLayers = [];
+
+            if (routeResults.length === 0) return;
+
+            const bounds = L.latLngBounds();
+            const topResults = routeResults.slice(0, 8); // Display top 8 results
+
+            for (let i = 0; i < topResults.length; i++) {
+                const item = topResults[i];
+                const color = routeColors[i % routeColors.length];
+
+                // Draw route
+                const latLngs = item.path.map(p => [p.lat, p.lng]);
+                const layer = L.polyline(latLngs, {
+                    color: color,
+                    weight: 4,
+                    opacity: 0.6
+                }).addTo(map);
+                multiRouteLayers.push(layer);
+                bounds.extend(layer.getBounds());
+
+                // Fetch and draw buses for this line
+                try {
+                    const positions = await BusAPI.getBusPositions([item.line.codLinea]);
+                    positions.forEach(bus => {
+                        const busIcon = L.divIcon({
+                            className: 'bus-marker-multi',
+                            html: `<div style="background:${color}; color:white; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; border:2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3);">🚌</div>`,
+                            iconSize: [20, 20],
+                            iconAnchor: [10, 10]
+                        });
+                        const marker = L.marker([bus.latitud, bus.longitud], { icon: busIcon })
+                            .bindPopup(`<strong>Línea ${item.line.codLinea}</strong><br>${item.line.descripcion}`)
+                            .addTo(map);
+                        multiRouteLayers.push(marker);
+                    });
+                } catch (e) {
+                    console.error(`Error fetching buses for line ${item.line.codLinea}`, e);
+                }
+            }
+
+            if (!bounds.isEmpty()) {
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+
+            // Collapse panel on mobile
+            if (window.innerWidth <= 768) {
+                togglePanel();
+            }
+
+            document.getElementById('status-text').innerHTML = `Mostrando ${topResults.length} rutas. <button onclick="goBack()" style="padding: 4px 10px; background: #6b7280; color: white; border: none; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer;">Cerrar Vista</button>`;
+        }
+
+        function goBack() {
+            document.getElementById('back-btn').style.display = 'none';
+
+            // Clear multi-route if active
+            multiRouteLayers.forEach(l => map.removeLayer(l));
+            multiRouteLayers = [];
+
+            // Reset UI
+            updateStatusInResults(`Se encontraron ${routeResults.length} líneas cercanas`);
+
+            // Stop bus tracking
+            if (busTrackingInterval) {
+                clearInterval(busTrackingInterval);
+            }
+            busMarkers.forEach(m => map.removeLayer(m));
+            busMarkers = [];
+
+            if (currentRouteLayer) map.removeLayer(currentRouteLayer);
+            if (window.routeDecorator) map.removeLayer(window.routeDecorator);
+        }
+
+        function resetSearch() {
+            console.log("Resetting search...");
+
+            // Reset mode
+            mapSelectionMode = null;
+            map.getContainer().style.cursor = '';
+
+            // Clear locations
+            originLocation = null;
+            destinationLocation = null;
+
+            // Remove markers
+            if (originMarker) map.removeLayer(originMarker);
+            if (destMarker) map.removeLayer(destMarker);
+            originMarker = null;
+            destMarker = null;
+
+            // Clear routes and tracking
+            if (currentRouteLayer) map.removeLayer(currentRouteLayer);
+            if (window.routeDecorator) map.removeLayer(window.routeDecorator);
+            if (busTrackingInterval) clearInterval(busTrackingInterval);
+            busMarkers.forEach(m => map.removeLayer(m));
+            busMarkers = [];
+            walkingLayerGroup.clearLayers();
+
+            // Clear multi-route
+            multiRouteLayers.forEach(l => map.removeLayer(l));
+            multiRouteLayers = [];
+
+            // Reset UI
+            document.getElementById('status-text').innerText = "Selecciona los puntos A y B en el mapa.";
+            document.getElementById('content').innerHTML = `
+                <div id="empty-state" style="padding: 40px; text-align: center; color: #9ca3af;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">🗺️</div>
+                    <p>Selecciona el Punto A (origen) y Punto B (destino) en el mapa para ver las líneas de colectivo disponibles.</p>
+                </div>
+            `;
+
+            const originBtn = document.getElementById('select-origin-btn');
+            originBtn.innerHTML = 'A';
+            originBtn.style.opacity = '1';
+
+            const destBtn = document.getElementById('select-dest-btn');
+            destBtn.innerHTML = 'B';
+            destBtn.style.opacity = '1';
+            document.getElementById('dest-display').style.display = 'none';
+
+            document.getElementById('back-btn').style.display = 'none';
+            document.getElementById('route-status-float').style.display = 'none';
+            document.getElementById('actions-panel').style.display = 'none';
+
+            // Reset map view
+            map.setView([-26.83, -65.20], 13);
+        }
+
+        function updateStatusInResults(message) {
+            const statusEl = document.getElementById('status-text');
+            const actionsPanel = document.getElementById('actions-panel');
+            if (!statusEl) return;
+
+            statusEl.innerHTML = message;
+
+            if (routeResults && routeResults.length > 0) {
+                actionsPanel.style.display = 'flex';
+            } else {
+                actionsPanel.style.display = 'none';
+            }
+        }
+
+        // Scroll to results function
+        function scrollToResults() {
+            const contentElement = document.getElementById('content');
+            if (contentElement) {
+                contentElement.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+
+                // Hide button after scrolling
+                setTimeout(() => {
+                    const viewResultsBtn = document.getElementById('view-results-btn');
+                    if (viewResultsBtn) {
+                        viewResultsBtn.style.display = 'none';
+                    }
+                }, 1000);
+            }
+        }
+
+        // Mobile panel toggle
+        function togglePanel() {
+            const panel = document.getElementById('panel');
+            const icon = document.getElementById('toggle-icon');
+
+            panel.classList.toggle('collapsed');
+            icon.textContent = panel.classList.contains('collapsed') ? '▲' : '▼';
+        }
+
+        // Auto-collapse panel on mobile when selecting a line
+        const originalSelectLine = selectLine;
+        selectLine = function (lineId) {
+            originalSelectLine(lineId);
+
+            // Collapse panel on mobile after selection
+            if (window.innerWidth <= 768) {
+                setTimeout(() => {
+                    const panel = document.getElementById('panel');
+                    const icon = document.getElementById('toggle-icon');
+                    panel.classList.add('collapsed');
+                    icon.textContent = '▲';
+                }, 500);
+            }
+        };
+
+        // Toggle debug console
+        function toggleDebug() {
+            const console = document.getElementById('debug-console');
+            const output = document.getElementById('debug-output');
+            if (console.style.display === 'none') {
+                console.style.display = 'block';
+                // Auto-scroll to bottom
+                setTimeout(() => console.scrollTop = console.scrollHeight, 100);
+            } else {
+                console.style.display = 'none';
+            }
+        }
+
+        // Copy debug log to clipboard
+        function copyDebugLog() {
+            const output = document.getElementById('debug-output');
+            if (!output) return;
+
+            // Extract text content without HTML
+            const text = output.innerText || output.textContent;
+
+            // Try modern clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('✅ Log copiado al portapapeles');
+                }).catch(err => {
+                    // Fallback to old method
+                    fallbackCopy(text);
+                });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        // Fallback copy method for older browsers
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                alert('✅ Log copiado al portapapeles');
+            } catch (err) {
+                alert('❌ Error al copiar. Por favor, selecciona y copia manualmente.');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // Clear debug log
+        function clearDebugLog() {
+            const output = document.getElementById('debug-output');
+            if (output) {
+                output.innerHTML = '';
+                console.log('Debug log cleared');
+            }
+        }
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es" style="scrollbar-gutter: stable; overflow-y: scroll">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="x-ua-compatible" content="ie=edge">
+	<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, shrink-to-fit=no">
+	<meta name="theme-color" content="#ffffff">
+	<meta name="msapplication-TileColor" content="#ffffff">
+	<title>Redbus</title>
+
+	<!-- SEO -->
+	<meta name="robots" content="index,follow">
+	<meta name="googlebot" content="index,follow">
+
+	<link rel="stylesheet" href="css/archivocss.css">
+	<link rel="icon" type="image/png" href="rest/favicon.png">
+	<!-- Vendors -->
+	<script src="js/vendors/axios.min.js"></script>
+	<script src="js/vendors/vanilla-tilt.js"></script>
+	<script src="js/vendors/vue-mobile-detection.js"></script>
+	<script src="js/vendors/lodash.js"></script>
+	<script src="js/vendors/dayjs/dayjs.min.js"></script>
+	<script src="js/vendors/dayjs/dayjs.locale.es.js"></script>
+	<script src="js/vendors/dayjs/dayjs.advancedformat.js"></script>
+	<script src="js/vendors/dayjs/dayjs.customParseFormat.js"></script>
+	<script src="js/vendors/dayjs/dayjs.localizedFormat.js"></script>
+	<script src="js/vendors/dayjs/dayjs.duration.js"></script>
+	<script src="js/vendors/chance.min.js"></script>
+	<script src="js/vendors/hammer.min.js"></script>
+	<script src="js/vendors/mobile-detect.min.js"></script>
+
+	<script src="js/vendors/flickity.pkgd.min.js"></script>
+	<link rel="stylesheet" href="css/vendors/flickity.css">
+
+	<!-- Leaflet -->
+	<link rel="stylesheet" href="css/vendors/leaflet.1.71.min.css">
+	<script src="js/vendors/leaflet/leaflet.js"></script>
+	<script src="js/vendors/leaflet/rotatedMarker.js"></script>
+	<script src="js/vendors/leaflet/easy-button.js"></script>
+
+	<!-- Vue -->
+	<script src="js/vendors/vue.min.js"></script>
+	<script src="js/vendors/vue-router.js"></script>
+	<script src="js/vendors/vue-material.min.js"></script>
+	<link rel="stylesheet" href="css/vendors/vue-timepicker.css">
+	<script src="js/vendors/vue-timepicker.umd.min.js"></script>
+
+	<!-- Vuelidate -->
+	<script src="js/vendors/vuelidate.min.js"></script>
+	<script src="js/vendors/validators.min.js"></script>
+	
+	<style>
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+  
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        input[type=date] {
+            -moz-appearance: textfield;
+        }
+		.btn-notification > div{
+			padding: 6px 0;
+		}
+    </style>
+	<!-- AnticlickJack -->
+	<style id="antiClickjack"> body{display:none !important;} </style>
+	<script type="text/javascript">
+		if (self === top) {
+			var antiClickjack = document.getElementById("antiClickjack");
+			antiClickjack.parentNode.removeChild(antiClickjack);
+		}else {top.location = self.location;}
+	</script>
+	<!-- Scrollbar -->
+	<link type="text/css" href="css/vendors/OverlayScrollbars.min.css" rel="stylesheet"/>
+	<script type="text/javascript" src="js/vendors/OverlayScrollbars.min.js"></script>
+
+	<!-- Config -->
+	<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+	
+	<script src="js/endpoints.min.js"></script>
+	<script src="rest/config.js/"></script>
+
+	<!-- Store -->
+	<script src="js/store/store.min.js"></script>
+	<script src="js/store/router-store.min.js"></script>
+	<script src="js/store/session-store.min.js"></script>
+	<script src="js/store/register-store.min.js"></script>
+	<script src="js/store/abono-store.min.js"></script>
+	<script src="js/store/abonos-admin-store.min.js"></script>
+	<script src="js/store/nomina-admin-store.min.js"></script>
+	<script src="js/store/anuncios-admin-store.min.js"></script>
+	<script src="js/store/novedades-lineas-admin-store.min.js"></script>
+	<script src="js/store/validacion-admin-store.min.js"></script>
+	<script src="js/store/notificacion-admin-store.min.js"></script>
+
+	<!-- Helpers -->
+	<script src="js/helpers/getData.min.js"></script>
+	<script src="js/helpers/userSession.min.js"></script>
+	<script src="js/helpers/submitRegister.min.js"></script>
+	<script src="js/helpers/showSnackbar.min.js"></script>
+
+	<!-- Partial components -->
+	<script src="js/components/Back.min.js"></script>
+	<script src="js/components/Loading.min.js"></script>
+	<script src="js/components/SimpleModal.min.js"></script>
+	<script src="js/components/Footer.min.js"></script>
+	<script src="js/components/header/Header.min.js"></script>
+	<script src="js/components/header/NavBar.min.js"></script>
+	<script src="js/components/header/UserMenu.min.js"></script>
+	<script src="js/components/header/AnonMenu.min.js"></script>
+	<script src="js/components/LogIn.min.js"></script>
+	<script src="js/components/UnverifiedUserModal.min.js"></script>
+	<script src="js/components/DeleteUserModal.min.js"></script>
+	<script src="js/components/ChangePassword.min.js"></script>
+	<script src="js/components/ForgotPassword.min.js"></script>
+	<script src="js/components/CardCredit.min.js"></script>
+	<script src="js/components/Register.min.js"></script>
+	<script src="js/components/Snackbar.min.js"></script>
+	<script src="js/components/SessionLoader.min.js"></script>
+	<script src="js/components/front/Hero.min.js"></script>
+	<script src="js/components/front/Links.min.js"></script>
+	<script src="js/components/tarjetas/CardRegisterSimple.min.js"></script>
+	<script src="js/components/tarjetas/CardRegisterBasic.min.js"></script>
+	<script src="js/components/tarjetas/CardRegisterFinal.min.js"></script>
+	<script src="js/components/tarjetas/CardRegisterNormal.min.js"></script>
+	<script src="js/components/tarjetas/CardsList.min.js"></script>
+	<script src="js/components/tarjetas/NoCards.min.js"></script>
+	<script src="js/components/tarjetas/TarjetaDetail.min.js"></script>
+	<script src="js/components/tarjetas/TransactionDetail.min.js"></script>
+	<script src="js/components/tarjetas/ValidateCard.min.js"></script>
+	<script src="js/components/cuando-viene/CuandoVieneInfo.min.js"></script>
+	<script src="js/components/mapa-de-buses/BusesSelects.min.js"></script>
+
+	<script src="js/components/abonos/showcase/AbonosShowcase.min.js"></script>
+	<script src="js/components/abonos/showcase/AbonosShowcaseSelector.min.js"></script>
+	<script src="js/components/abonos/showcase/AvailableAbonos.min.js"></script>
+	<script src="js/components/abonos/showcase/AbonoCard.min.js"></script>
+	<script src="js/components/abonos/showcase/AbonoRequest.min.js"></script>
+	<script src="js/components/abonos/showcase/AbonoRequestUpload.min.js"></script>
+	<script src="js/components/abonos/showcase/AbonoRequestSubmissionConfirm.min.js"></script>
+	<script src="js/components/abonos/historial/AbonosHistorial.min.js"></script>
+	<script src="js/components/abonos/historial/AbonosHistorialTable.min.js"></script>
+	<script src="js/components/abonos/historial/AbonosSolicitudDetail.min.js"></script>
+	<script src="js/components/abonos/historial/Step.min.js"></script>
+	<script src="js/components/recarga-virtual/RecargasVirtuales.min.js"></script>
+	<script src="js/components/recarga-virtual/RecargasVirtualesList.min.js"></script>
+	<script src="js/components/recarga-virtual/RecargaVirtualSolicitud.min.js"></script>
+	<script src="js/components/recarga-virtual/RecargaVirtualModal.min.js"></script>
+	
+
+	<script src="js/components/admin/layout/sidebar/AdminSidebar.min.js"></script>
+	<script src="js/components/admin/layout/sidebar/RecursiveMenu.min.js"></script>
+	<script src="js/components/admin/notificacion/NotificacionList.min.js"></script>
+	<script src="js/components/admin/notificacion/NotificacionPaginator.min.js"></script>
+	<script src="js/components/admin/abonos/AbonosFilters.min.js"></script>
+	<script src="js/components/admin/abonos/AbonosList.min.js"></script>
+	<script src="js/components/admin/abonos/AbonosPaginator.min.js"></script>
+	<script src="js/components/admin/abonos/AdminSolicitudDetail.min.js"></script>
+	<script src="js/components/admin/abonos/AbonoSolicitudHistorial.min.js"></script>
+	<script src="js/components/admin/abonos/HistorialList.min.js"></script>
+	<script src="js/components/admin/abonos/AbonoEmitConfirm.min.js"></script>
+	<script src="js/components/admin/abonos/AbonoEmitSuccess.min.js"></script>
+
+	<script src="js/components/admin/novedades-lineas/NovedadesLineasList.min.js"></script>
+	<script src="js/components/admin/novedades-lineas/NovedadesLineasPaginator.min.js"></script>
+
+	<script src="js/components/admin/nomina/NominaEmitSuccess.min.js"></script>
+	<script src="js/components/admin/nomina/NominaFilters.min.js"></script>
+	<script src="js/components/admin/nomina/NominaList.min.js"></script>
+	<script src="js/components/admin/nomina/NominaModal.min.js"></script>
+	<script src="js/components/admin/nomina/NominaPaginator.min.js"></script>
+	<script src="js/components/admin/nomina/NominaImport.min.js"></script>
+
+	<script src="js/components/admin/anuncios/AnunciosList.min.js"></script>
+	<script src="js/components/admin/anuncios/AnunciosPaginator.min.js"></script>
+
+	<script src="js/components/admin/validacion-usuario/ValidacionFilters.min.js"></script>
+	<script src="js/components/admin/validacion-usuario/ValidacionList.min.js"></script>
+	<script src="js/components/admin/validacion-usuario/ValidacionPaginator.min.js"></script>
+	<script src="js/components/admin/validacion-usuario/HistorialList.min.js"></script>
+	<script src="js/components/admin/validacion-usuario/UserDetail.min.js"></script>
+
+	<script src="js/components/benefit/CardsBenfitList.min.js"></script>
+	
+	<!-- Pages -->
+	<script src="js/pages/front.min.js" defer></script>
+	<script src="js/pages/tarjetas.min.js" defer></script>
+	<script src="js/pages/puntos-de-venta.min.js" defer></script>
+	<script src="js/pages/mapa-de-buses.min.js" defer></script>
+	<script src="js/pages/cuando-viene.min.js" defer></script>
+	<script src="js/pages/mail-confirm.min.js" defer></script>
+	<script src="js/pages/password-reset.min.js" defer></script>
+	<script src="js/pages/abonos.min.js" defer></script>
+	<script src="js/pages/admin/welcome.min.js" defer></script>
+	<script src="js/pages/admin/abonos.min.js" defer></script>
+	<script src="js/pages/admin/admin.min.js" defer></script>
+	<script src="js/pages/admin/validacion-admin.min.js" defer></script>
+	<script src="js/pages/admin/notification.min.js" defer></script>
+	<script src="js/pages/admin/anuncios.min.js" defer></script>
+	<script src="js/pages/admin/subir-archivos.min.js" defer></script>
+	<script src="js/pages/admin/novedades-lineas.min.js" defer></script>
+	<script src="js/pages/404.min.js" defer></script>
+	<script src="js/pages/datos-user-abonos.min.js" defer></script>
+	<script src="js/pages/card-benefit.min.js" defer></script>
+	<script src="js/pages/card-benefit-list.min.js" defer></script>
+	<script src="js/pages/benefit.min.js" defer></script>
+	<script src="js/pages/admin/Nomina.min.js" defer></script>
+	<link rel="preload" href="css/resources/font-material/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2" as="font" type="font/woff2" crossorigin>
+
+</head>
+<body>
+	<div id="redbus">
+		<!-- Base component -->
+		<script src="js/redbus-routing.min.js" defer></script>
+		<script src="js/redbus.min.js" defer></script>
+	</div>
+</body>
+</html>
