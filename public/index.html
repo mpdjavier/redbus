@@ -225,6 +225,62 @@
             height: 100%;
         }
 
+        /* Explorer Grouping Styles */
+        .explorer-group {
+            margin-bottom: 8px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+        }
+        .group-header {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #f8fafc;
+            cursor: pointer;
+            gap: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .group-header:hover {
+            background: #f1f5f9;
+        }
+        .group-title {
+            flex: 1;
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 14px;
+        }
+        .group-expand-icon {
+            font-size: 12px;
+            color: #64748b;
+            transition: transform 0.2s;
+        }
+        .group-expand-icon.expanded {
+            transform: rotate(180deg);
+        }
+        .sub-lines-container {
+            display: none;
+            background: white;
+        }
+        .sub-lines-container.expanded {
+            display: block;
+        }
+        .sub-line-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px 10px 40px;
+            border-bottom: 1px solid #f8fafc;
+            gap: 12px;
+            cursor: pointer;
+        }
+        .sub-line-item:last-child {
+            border-bottom: none;
+        }
+        .sub-line-item:active {
+            background: #f0f9ff;
+        }
+
         /* Progress Bar */
         #calculating-bar {
             display: none;
@@ -254,6 +310,32 @@
                 transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 z-index: 1000;
                 order: 2;
+            }
+
+            #panel.explorer-full {
+                height: 94vh;
+                transform: translateY(0) !important;
+                padding-top: 5px;
+            }
+
+            #panel.explorer-full .point-selector-row,
+            #panel.explorer-full #walk-dist-container,
+            #panel.explorer-full #clear-btn,
+            #panel.explorer-full h1,
+            #panel.explorer-full #settings-btn,
+            #panel.explorer-full #calculating-bar,
+            #panel.explorer-full #dest-display {
+                display: none !important;
+            }
+
+            #panel.explorer-full .panel-header {
+                padding-bottom: 5px;
+                border-bottom: none;
+            }
+
+            #panel.explorer-full #content {
+                max-height: calc(94vh - 60px) !important;
+                flex-grow: 1;
             }
 
             #panel.collapsed {
@@ -442,6 +524,104 @@
                 text-transform: uppercase;
             }
         }
+
+        /* Settings Overlay */
+        #settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 6000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .settings-content {
+            background: white;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .settings-header {
+            padding: 16px 20px;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .settings-body {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .settings-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .settings-group h3 {
+            margin: 0;
+            font-size: 14px;
+            color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .settings-btn {
+            padding: 12px;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            color: #374151;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .settings-btn:hover {
+            background: #e5e7eb;
+        }
+
+        .settings-btn.primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .settings-btn.danger {
+            color: #dc2626;
+            border-color: #fecdd3;
+        }
+
+        .settings-btn.danger:hover {
+            background: #fef2f2;
+        }
+
+        /* Audit Checkmark */
+        .audited-badge {
+            color: #10b981;
+            font-size: 14px;
+            margin-left: 4px;
+        }
     </style>
 </head>
 
@@ -456,16 +636,23 @@
 
         <div class="panel-header">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <button id="back-btn" onclick="goBack()" style="padding: 4px 8px; font-size: 12px; display: none;">←
+                <button id="back-btn" onclick="goBack()" style="padding: 6px 12px; font-size: 13px; font-weight: 700; border-radius: 8px; background: #f3f4f6; border: 1px solid #d1d5db; color: #374151; cursor: pointer; display: none;">←
                     Volver</button>
                 <div style="flex-grow: 1;"></div>
                 <button id="clear-btn" onclick="resetSearch()"
                     style="padding: 4px 10px; background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;">🧹
                     Limpiar</button>
             </div>
-            <h1>Bus Radar <span id="build-timestamp" style="font-size: 12px; color: #9ca3af; font-weight: 400;"></span>
-            </h1>
-            <p class="subtitle" id="status-text">Selecciona los puntos A y B en el mapa.</p>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+                <div style="flex-grow: 1;">
+                    <h1>Bus Radar <span id="build-timestamp" style="font-size: 12px; color: #9ca3af; font-weight: 400;"></span></h1>
+                    <p class="subtitle" id="status-text">Selecciona los puntos A y B en el mapa.</p>
+                </div>
+                <button id="settings-btn" onclick="toggleSettings()" 
+                    style="padding: 8px; background: transparent; border: none; cursor: pointer; font-size: 20px; color: #6b7280; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">
+                    ⚙️
+                </button>
+            </div>
 
 
             <!-- Compact Point Selection Row -->
@@ -498,10 +685,14 @@
                 </div>
             </div>
 
-            <div id="actions-panel" style="display: none; justify-content: center; margin-bottom: 8px;">
+            <div id="actions-panel" style="display: none; justify-content: center; margin-bottom: 8px; gap: 8px;">
                 <button id="view-all-btn" onclick="viewAllOnMap()"
                     style="padding: 6px 14px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);">
-                    🗺️ Ver todo en el mapa
+                    🗺️ Ver todo
+                </button>
+                <button id="street-sense-btn" onclick="toggleStreetDirections()"
+                    style="padding: 6px 14px; background: #f9fafb; color: #374151; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    🧭 Sentidos
                 </button>
             </div>
 
@@ -511,7 +702,7 @@
             </div>
 
             <!-- Walking Distance Control -->
-            <div style="margin: 16px 0; padding: 12px; background: #f9fafb; border-radius: 8px;">
+            <div id="walk-dist-container" style="margin: 16px 0; padding: 12px; background: #f9fafb; border-radius: 8px;">
                 <label style="display: block; font-size: 13px; color: #6b7280; margin-bottom: 8px;">
                     🚶 Distancia máxima de caminata: <strong id="walk-dist-label">800m</strong>
                 </label>
@@ -522,10 +713,21 @@
 
             <div id="calculating-bar" style="display:none; margin-top: 10px;">
                 <div style="height:4px; background:#e5e7eb; border-radius:2px; overflow:hidden;">
-                    <div id="progress-fill"
-                        style="width:0%; height:100%; background:var(--primary); transition: width 0.3s;"></div>
+                    <div id="progress-fill" style="width:0%; height:100%; background:var(--primary); transition: width 0.3s;"></div>
                 </div>
-                <div style="font-size:11px; color:#6b7280; text-align:right; margin-top:4px;">Analizando rutas...</div>
+                <div id="calculating-status" style="font-size:11px; color:#6b7280; text-align:right; margin-top:4px;">Analizando rutas...</div>
+            </div>
+
+            <!-- Initial Data Sync Progress -->
+            <div id="initial-sync-panel" style="display:none; margin-top: 10px; padding: 12px; background: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <strong style="font-size: 12px; color: #1e40af;">🔄 Sincronizando Itinerarios OSM</strong>
+                    <span id="sync-count" style="font-size: 11px; color: #3b82f6;">0/0</span>
+                </div>
+                <div style="height:6px; background:#dbeafe; border-radius:3px; overflow:hidden;">
+                    <div id="sync-fill" style="width:0%; height:100%; background:#2563eb; transition: width 0.3s;"></div>
+                </div>
+                <p style="font-size: 10px; color: #60a5fa; margin: 4px 0 0 0;">Esto solo ocurrirá la primera vez para mejorar la precisión.</p>
             </div>
         </div>
 
@@ -535,6 +737,44 @@
                 <div style="font-size: 48px; margin-bottom: 16px;">🗺️</div>
                 <p>Selecciona el Punto A (origen) y Punto B (destino) en el mapa para ver las líneas de colectivo
                     disponibles.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Overlay -->
+    <div id="settings-overlay" onclick="if(event.target === this) toggleSettings()">
+        <div class="settings-content">
+            <div class="settings-header">
+                <h2 style="margin:0; font-size:18px;">Configuración</h2>
+                <button onclick="toggleSettings()" style="background:none; border:none; font-size:20px; cursor:pointer;">✕</button>
+            </div>
+            <div class="settings-body">
+                <div class="settings-group">
+                    <h3>Consultas</h3>
+                    <button class="settings-btn" onclick="showItineraryExplorer(); toggleSettings();">
+                        📖 Explorar Recorridos Guardados
+                    </button>
+                    <button class="settings-btn primary" onclick="runBatchAuditAll()">
+                        🔄 Auditar todas las rutas visibles
+                    </button>
+                    <button class="settings-btn" onclick="AuditAPI.clearAllAudits(); alert('Auditorías borradas'); location.reload();">
+                        🗑️ Borrar caché de auditoría
+                    </button>
+                </div>
+                
+                <div class="settings-group">
+                    <h3>Desarrollador</h3>
+                    <button class="settings-btn" onclick="toggleDebug(); toggleSettings();">
+                        🐛 Alternar Consola Debug
+                    </button>
+                </div>
+
+                <div id="batch-audit-progress" style="display:none; padding:10px; background:#f0f9ff; border-radius:8px; border:1px solid #bae6fd;">
+                    <div style="font-size:12px; color:#0369a1; margin-bottom:5px;" id="batch-audit-status">Auditando...</div>
+                    <div style="height:4px; background:#e0f2fe; border-radius:2px; overflow:hidden;">
+                        <div id="batch-audit-fill" style="width:0%; height:100%; background:#0ea5e9; transition:width 0.3s;"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -560,11 +800,7 @@
         <div id="debug-output" style="font-size: 10px; line-height: 1.4;"></div>
     </div>
 
-    <!-- Debug Toggle Button -->
-    <button id="debug-toggle" onclick="toggleDebug()"
-        style="position: fixed; bottom: 15px; right: 15px; background: rgba(0,0,0,0.8); color: #0f0; border: 2px solid #0f0; padding: 10px 14px; cursor: pointer; z-index: 10000; font-family: monospace; font-size: 12px; border-radius: 6px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">
-        🐛 DEBUG
-    </button>
+    <!-- Debug Toggle Button is now inside Settings menu -->
 
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -576,20 +812,139 @@
     <script src="geometry.js"></script>
 
     <script>
-        // Setup Map
-        const map = L.map('map').setView([-26.83, -65.20], 13);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: 'abcd',
-            maxZoom: 20
-        }).addTo(map);
+        // === 1. DEBUG CONSOLE CAPTURE (MUST BE FIRST) ===
+        (function() {
+            const output = document.getElementById('debug-output');
+            const originalLog = console.log;
+            const originalError = console.error;
+            const originalWarn = console.warn;
 
-        // Global Variables
+            function addToDebug(args, type) {
+                if (!output) return;
+                const msg = Array.from(args).map(arg => {
+                    try {
+                        return typeof arg === 'object' ? JSON.stringify(arg) : String(arg);
+                    } catch(e) {
+                        return '[Object]';
+                    }
+                }).join(' ');
+                
+                const time = new Date().toLocaleTimeString();
+                const color = type === 'error' ? '#ef4444' : (type === 'warn' ? '#f59e0b' : '#10b981');
+                
+                const entry = document.createElement('div');
+                entry.style.marginBottom = '2px';
+                entry.innerHTML = `<span style="color: #6b7280; font-size: 9px;">[${time}]</span> <span style="color: ${color};">${msg}</span>`;
+                
+                output.appendChild(entry);
+                if (output.childNodes.length > 100) output.removeChild(output.firstChild);
+                
+                const consoleDiv = document.getElementById('debug-console');
+                if (consoleDiv) consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            }
+
+            console.log = function() {
+                originalLog.apply(console, arguments);
+                addToDebug(arguments, 'log');
+            };
+            console.error = function() {
+                originalError.apply(console, arguments);
+                addToDebug(arguments, 'error');
+            };
+            console.warn = function() {
+                originalWarn.apply(console, arguments);
+                addToDebug(arguments, 'warn');
+            };
+        })();
+
+        // === 2. GLOBAL ERROR HANDLERS ===
+        window.onerror = function(msg, source, lineno, colno, error) {
+            console.error(`🚨 UNCAUGHT ERROR: ${msg} (at ${source}:${lineno}:${colno})`);
+            // Auto-show debug console on errors
+            const dc = document.getElementById('debug-console');
+            if (dc) dc.style.display = 'block';
+            return false;
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error(`🚨 UNHANDLED PROMISE REJECTION: ${event.reason}`);
+            const dc = document.getElementById('debug-console');
+            if (dc) dc.style.display = 'block';
+        });
+
+        console.log("🟢 Script starting...");
+
+        // === 3. MAP INITIALIZATION (with safety check) ===
+        let map, streetDirectionsLayer;
+        try {
+            if (typeof L === 'undefined') throw new Error("Leaflet (L) is not loaded! Check network/CDN.");
+            map = L.map('map').setView([-26.83, -65.20], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(map);
+            streetDirectionsLayer = L.layerGroup().addTo(map);
+            console.log("✅ Map initialized successfully");
+        } catch (mapError) {
+            console.error("❌ MAP INIT FAILED:", mapError.message);
+            document.getElementById('map').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444;font-size:16px;padding:20px;text-align:center;">⚠️ Error cargando mapa: ' + mapError.message + '</div>';
+        }
+
+        // === 4. GLOBAL VARIABLES ===
         let currentLines = [];
         let maxWalkDistance = 800;
         let currentRouteLayer = null;
         let routeResults = [];
         let currentSelectedLineId = null;
+        let busPositionsHistory = {};
+        const BATCH_SIZE = 5;
+        let showStreetDirections = false;
+        let lastOSMQueryBounds = null;
+
+        // --- SETTINGS & AUDIT UI ---
+        function toggleSettings() {
+            const overlay = document.getElementById('settings-overlay');
+            if (overlay.style.display === 'flex') {
+                overlay.style.display = 'none';
+            } else {
+                overlay.style.display = 'flex';
+            }
+        }
+
+        async function runBatchAuditAll() {
+            if (routeResults.length === 0) {
+                alert("Primero busca una ruta para tener líneas que auditar.");
+                return;
+            }
+
+            const progressDiv = document.getElementById('batch-audit-progress');
+            const statusText = document.getElementById('batch-audit-status');
+            const fill = document.getElementById('batch-audit-fill');
+            
+            progressDiv.style.display = 'block';
+            let processed = 0;
+            const total = routeResults.length;
+
+            for (const item of routeResults) {
+                processed++;
+                statusText.innerText = `Auditando ${item.line.descripcion} (${processed}/${total})...`;
+                fill.style.width = `${(processed / total) * 100}%`;
+
+                await AuditAPI.runAudit(item.line.codLinea, item.path);
+                await new Promise(r => setTimeout(r, 200));
+            }
+
+            statusText.innerText = "¡Auditoría completa!";
+            setTimeout(() => {
+                progressDiv.style.display = 'none';
+                renderResults(routeResults, true);
+            }, 1500);
+        }
+
+        function toggleDebug() {
+            const el = document.getElementById('debug-console');
+            el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
 
         // Update timestamp
         const now = new Date();
@@ -597,6 +952,7 @@
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
+        
         document.getElementById('build-timestamp').textContent = `${day}/${month} ${hours}:${minutes}`;
 
         // Walking distance slider
@@ -605,16 +961,168 @@
             document.getElementById('walk-dist-label').textContent = maxWalkDistance + 'm';
         });
 
+        // Shared State for Wear OS
+        function saveSharedState() {
+            const state = {
+                results: routeResults,
+                selectedLineId: currentSelectedLineId,
+                origin: originLocation,
+                destination: destinationLocation,
+                timestamp: Date.now()
+            };
+            const jsonString = JSON.stringify(state);
+            localStorage.setItem('shared_bus_radar_state', jsonString);
+            console.log("💾 Shared state saved for Wear OS");
+
+            // Sync with Wear OS via Native Bridge
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.WearSync) {
+                window.Capacitor.Plugins.WearSync.syncState({ data: jsonString })
+                    .then(() => console.log("📡 State synced to Wear OS"))
+                    .catch(err => console.log("⚠️ Wear OS sync not available/failed"));
+            }
+        }
+
         // Initialize - Load lines
         async function init() {
             try {
                 currentLines = await BusAPI.getLines();
-                BusAPI.setLinesCache(currentLines); // Save to cache for getBusPositions
+                BusAPI.setLinesCache(currentLines);
                 console.log(`Loaded ${currentLines.length} unique lines`);
+                
+                // Check if we need initial itinerary sync
+                const itineraries = DatabaseAPI.getItineraries();
+                const syncedCount = Object.keys(itineraries).length;
+                console.log(`📊 Itinerary Database: ${syncedCount}/${currentLines.length} lines synced.`);
+                
+                // Trigger sync if not complete
+                if (syncedCount < currentLines.length && currentLines.length > 0) {
+                    // If it's very low, show the big panel. 
+                    // If it's partially done, we can just run it in the background quietly 
+                    // or let the user trigger it from settings/explorer.
+                    if (syncedCount < 5) {
+                        console.log("🚀 Starting initial itinerary database creation...");
+                        initializeItineraryDatabase();
+                    }
+                }
             } catch (e) {
                 console.error("Failed to load lines", e);
             }
         }
+
+        window.initializeItineraryDatabase = async function(targetIds = null) {
+            const syncPanel = document.getElementById('initial-sync-panel');
+            
+            syncPanel.style.display = 'block';
+            syncPanel.innerHTML = `
+                <div style="font-size: 11px; color: #1e3a8a; margin-bottom: 5px; font-weight: 600;" id="sync-status">Sincronizando itinerarios...</div>
+                <div style="font-size: 10px; color: #64748b; margin-bottom: 8px;" id="sync-stats">Preparando...</div>
+                <div style="height: 6px; background: #e0f2fe; border-radius: 3px; overflow: hidden; margin-bottom: 8px;">
+                    <div id="sync-fill" style="width: 0%; height: 100%; background: #0ea5e9; transition: width 0.3s;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span id="sync-count" style="font-size: 10px; color: #64748b; font-family: monospace;">0/0</span>
+                    <div id="sync-results" style="font-size: 9px; font-weight: bold;"></div>
+                </div>
+            `;
+
+            const statusEl = document.getElementById('sync-status');
+            const statsEl = document.getElementById('sync-stats');
+            const fillEl = document.getElementById('sync-fill');
+            const countEl = document.getElementById('sync-count');
+            const resEl = document.getElementById('sync-results');
+
+            const allLines = currentLines || [];
+            const itineraries = DatabaseAPI.getItineraries();
+            
+            // Determine which lines to process (Intersection of selected lines and missing itineraries)
+            let linesToProcess = [];
+            
+            if (targetIds && Array.isArray(targetIds)) {
+                // Manually triggered for specific IDs (Retry case)
+                linesToProcess = allLines.filter(line => targetIds.includes(String(line.codLinea)));
+            } else {
+                // Determine targeted lines based on user index selection
+                const indexed = IndexedLinesAPI.getIndexed();
+                linesToProcess = allLines.filter(line => 
+                    indexed.includes(String(line.codLinea)) && !itineraries[String(line.codLinea)]
+                );
+            }
+
+            const total = linesToProcess.length;
+            if (total === 0) {
+                syncPanel.innerHTML = '<div style="color: #10b981; font-size: 11px; font-weight: 600; text-align: center; padding: 10px;">✅ Selección al día</div>';
+                setTimeout(() => { if (syncPanel.style.display === 'block') syncPanel.style.display = 'none'; }, 2000);
+                return;
+            }
+
+            let processedSync = 0;
+            let successCount = 0;
+            let failCount = 0;
+            const SYNC_BATCH_SIZE = 2; // Reduced batch size for OSM stability
+
+            const updateUI = () => {
+                const pct = Math.round((processedSync / total) * 100);
+                fillEl.style.width = pct + '%';
+                countEl.innerText = processedSync + '/' + total;
+                resEl.innerHTML = `<span style="color:#10b981">✓ ${successCount}</span> | <span style="color:#ef4444">⚠ ${failCount}</span>`;
+            };
+
+            while (linesToProcess.length > 0) {
+                const batch = linesToProcess.splice(0, SYNC_BATCH_SIZE);
+                await Promise.all(batch.map(async (line) => {
+                    try {
+                        const route = await BusAPI.getRoute(line.codLinea);
+                        if (route && route.nodos && route.nodos.length > 0) {
+                            const path = route.nodos.map(n => ({ lat: n.latitud, lng: n.longitud }));
+                            const streets = await OSMAPI.generateItinerary(path);
+                            if (streets && streets.length > 0) {
+                                DatabaseAPI.saveItinerary(line.codLinea, streets);
+                                successCount++;
+                            } else {
+                                failCount++;
+                            }
+                        } else {
+                            failCount++;
+                        }
+                    } catch (e) {
+                        console.warn(`Failed to sync line ${line.codLinea}`, e);
+                        failCount++;
+                    }
+                }));
+
+                processedSync += batch.length;
+                updateUI();
+                
+                if (linesToProcess.length > 0) {
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+            }
+
+            statusEl.innerText = "Sincronización finalizada";
+            statsEl.innerText = failCount > 0 ? "Algunas rutas no pudieron procesarse." : "¡Todo listo!";
+            
+            if (failCount > 0) {
+                const retryBtn = document.createElement('button');
+                retryBtn.innerText = "↻ Reintentar Fallidos";
+                retryBtn.style.cssText = "margin-top:8px; width:100%; border:none; background:#2563eb; color:white; padding:6px; border-radius:4px; font-size:10px; cursor:pointer; font-weight:bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);";
+                retryBtn.onclick = () => initializeItineraryDatabase(true);
+                syncPanel.appendChild(retryBtn);
+
+                const closeBtn = document.createElement('button');
+                closeBtn.innerText = "Cerrar";
+                closeBtn.style.cssText = "margin-top:4px; width:100%; border:none; background:#6b7280; color:white; padding:4px; border-radius:4px; font-size:10px; cursor:pointer;";
+                closeBtn.onclick = () => { syncPanel.style.display = 'none'; };
+                syncPanel.appendChild(closeBtn);
+            } else {
+                setTimeout(() => { 
+                    syncPanel.style.display = 'none'; 
+                    if (document.getElementById('status-text') && document.getElementById('status-text').innerText.includes("Explorador")) {
+                        showItineraryExplorer();
+                    }
+                }, 3000);
+            }
+        }
+
         init();
 
         // === COORDINATE SELECTION ===
@@ -624,51 +1132,95 @@
         let destMarker = null;
         let currentTripIndices = null; // Store specific indices for Origin->Dest trip
 
-        // GPS Button - Updated for Capacitor native support
+        // GPS Button - Updated for Sequential Selection
         document.getElementById('gps-btn').addEventListener('click', async () => {
             const gpsBtn = document.getElementById('gps-btn');
             try {
                 gpsBtn.classList.add('loading');
                 document.getElementById('status-text').innerText = "Obteniendo ubicación...";
                 const pos = await BusAPI.getCurrentPosition();
-                const lat = pos.lat;
-                const lng = pos.lng;
+                await handlePointSelection(pos.lat, pos.lng, "GPS");
+            } catch (err) {
+                console.error("No se pudo obtener ubicación:", err);
+                updateStatusInResults("Error GPS: " + (err.message || "Permiso denegado"));
+                alert('No se pudo obtener tu ubicación.');
+            } finally {
+                gpsBtn.classList.remove('loading');
+            }
+        });
 
-                // Remove previous origin marker
-                if (originMarker) {
-                    map.removeLayer(originMarker);
-                }
+        // Common Point Handler (A -> B logic)
+        async function handlePointSelection(lat, lng, label = "") {
+            console.log(`📍 handlePointSelection: ${lat}, ${lng} (${label}) | Mode: ${mapSelectionMode}`);
+            
+            // 1. Determine which point to set based on mode or state
+            let target = null;
+            if (mapSelectionMode === 'origin') target = 'A';
+            else if (mapSelectionMode === 'destination') target = 'B';
+            else if (!originLocation) target = 'A';
+            else if (!destinationLocation) target = 'B';
+            else {
+                // If both exist and no mode is active, we reset and start with A again
+                target = 'A';
+                resetMarkers(); 
+            }
 
-                // Create custom origin icon
+            if (target === 'A') {
+                if (originMarker) map.removeLayer(originMarker);
                 const originIcon = L.divIcon({
                     className: 'origin-marker',
                     html: '<div style="background:#10b981; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">A</div>',
                     iconSize: [32, 32]
                 });
-
-                // Add marker and update location
                 originMarker = L.marker([lat, lng], { icon: originIcon }).addTo(map);
                 originLocation = { lat, lng };
-
-                // Update UI state
+                
                 const originBtn = document.getElementById('select-origin-btn');
                 originBtn.innerHTML = '✓';
                 originBtn.style.opacity = '0.8';
-
-                updateStatusInResults("🟢 Punto A seleccionado (GPS)");
-                map.setView([lat, lng], 15);
-
-                if (destinationLocation) {
-                    findBestLines(destinationLocation, originLocation);
-                }
-            } catch (err) {
-                console.error("No se pudo obtener ubicación:", err);
-                updateStatusInResults("Error GPS: " + (err.message || "Permiso denegado"));
-                alert('No se pudo obtener tu ubicación. Verifica que el GPS de tu celular esté encendido y que la app tenga permisos.');
-            } finally {
-                gpsBtn.classList.remove('loading');
+                updateStatusInResults(`🟢 Punto A fijado (${label})`);
+                
+            } else {
+                if (destMarker) map.removeLayer(destMarker);
+                const destIcon = L.divIcon({
+                    className: 'dest-marker',
+                    html: '<div style="background:#ef4444; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">B</div>',
+                    iconSize: [32, 32]
+                });
+                destMarker = L.marker([lat, lng], { icon: destIcon }).addTo(map);
+                destinationLocation = { lat, lng };
+                
+                const destBtn = document.getElementById('select-dest-btn');
+                destBtn.innerHTML = '✓';
+                destBtn.style.opacity = '0.8';
+                document.getElementById('dest-display').style.display = 'block';
+                updateStatusInResults(`🔴 Punto B fijado (${label})`);
             }
-        });
+
+            // Cleanup mode
+            mapSelectionMode = null;
+            map.getContainer().style.cursor = '';
+            document.getElementById('select-origin-btn').style.opacity = originLocation ? '0.8' : '1';
+            document.getElementById('select-dest-btn').style.opacity = destinationLocation ? '0.8' : '1';
+
+            // Automatic search if both present
+            if (originLocation && destinationLocation) {
+                saveSharedState();
+                findBestLines(destinationLocation, originLocation);
+            }
+        }
+
+        function resetMarkers() {
+            if (originMarker) map.removeLayer(originMarker);
+            if (destMarker) map.removeLayer(destMarker);
+            originLocation = null;
+            destinationLocation = null;
+            originMarker = null;
+            destMarker = null;
+            document.getElementById('select-origin-btn').innerHTML = 'A';
+            document.getElementById('select-dest-btn').innerHTML = 'B';
+            document.getElementById('dest-display').style.display = 'none';
+        }
 
         // === FAVORITES LOGIC ===
         function setupFavorite(id, type) {
@@ -679,51 +1231,14 @@
             const saved = localStorage.getItem(`fav_${type}`);
             if (saved) btn.classList.add('active');
 
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', async () => {
                 const savedData = localStorage.getItem(`fav_${type}`);
                 if (!savedData) {
-                    alert(`Mantén presionado el icono de ${type === 'home' ? 'Hogar' : 'Trabajo'} para guardar tu ubicación actual.`);
+                    alert(`Mantén presionado para guardar tu ubicación.`);
                     return;
                 }
-
                 const loc = JSON.parse(savedData);
-                console.log(`Setting favorite ${type}:`, loc);
-
-                const lat = loc.lat;
-                const lng = loc.lng;
-
-                // Apply to current selection mode or default to A if nothing selected
-                const mode = mapSelectionMode || (originLocation ? 'destination' : 'origin');
-
-                if (mode === 'destination') {
-                    if (destMarker) map.removeLayer(destMarker);
-                    const destIcon = L.divIcon({
-                        className: 'dest-marker',
-                        html: '<div style="background:#ef4444; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">B</div>',
-                        iconSize: [32, 32]
-                    });
-                    destMarker = L.marker([lat, lng], { icon: destIcon }).addTo(map);
-                    destinationLocation = { lat, lng };
-                    document.getElementById('select-dest-btn').innerHTML = '✓';
-                    document.getElementById('dest-display').style.display = 'block';
-                } else {
-                    if (originMarker) map.removeLayer(originMarker);
-                    const originIcon = L.divIcon({
-                        className: 'origin-marker',
-                        html: '<div style="background:#10b981; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">A</div>',
-                        iconSize: [32, 32]
-                    });
-                    originMarker = L.marker([lat, lng], { icon: originIcon }).addTo(map);
-                    originLocation = { lat, lng };
-                    document.getElementById('select-origin-btn').innerHTML = '✓';
-                }
-
-                map.setView([lat, lng], 15);
-                updateStatusInResults(`📍 Ubicación de ${type === 'home' ? 'Hogar' : 'Trabajo'} seleccionada`);
-
-                if (originLocation && destinationLocation) {
-                    findBestLines(destinationLocation, originLocation);
-                }
+                handlePointSelection(loc.lat, loc.lng, type === 'home' ? '🏠 Hogar' : '💼 Trabajo');
             });
 
             // Long press to save (works on mobile)
@@ -767,57 +1282,7 @@
         });
 
         map.on('click', async (e) => {
-            if (!mapSelectionMode) return;
-
-            const lat = e.latlng.lat;
-            const lng = e.latlng.lng;
-
-            // Custom marker icons
-            const originIcon = L.divIcon({
-                className: 'origin-marker',
-                html: '<div style="background:#10b981; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">A</div>',
-                iconSize: [32, 32]
-            });
-
-            const destIcon = L.divIcon({
-                className: 'dest-marker',
-                html: '<div style="background:#ef4444; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">B</div>',
-                iconSize: [32, 32]
-            });
-
-            if (mapSelectionMode === 'destination') {
-                if (destMarker) map.removeLayer(destMarker);
-                destMarker = L.marker([lat, lng], { icon: destIcon }).addTo(map);
-                destinationLocation = { lat, lng };
-
-                const destBtn = document.getElementById('select-dest-btn');
-                destBtn.innerHTML = '✓';
-                destBtn.style.opacity = '0.8';
-
-                document.getElementById('dest-display').style.display = 'block';
-                document.getElementById('status-text').innerText = "🔴 Punto B seleccionado";
-
-                if (originLocation) {
-                    findBestLines(destinationLocation, originLocation);
-                }
-            } else {
-                if (originMarker) map.removeLayer(originMarker);
-                originMarker = L.marker([lat, lng], { icon: originIcon }).addTo(map);
-                originLocation = { lat, lng };
-
-                const originBtn = document.getElementById('select-origin-btn');
-                originBtn.innerHTML = '✓';
-                originBtn.style.opacity = '0.8';
-
-                document.getElementById('status-text').innerText = "🟢 Punto A seleccionado";
-
-                if (destinationLocation) {
-                    findBestLines(destinationLocation, originLocation);
-                }
-            }
-
-            map.getContainer().style.cursor = '';
-            mapSelectionMode = null;
+            handlePointSelection(e.latlng.lat, e.latlng.lng, "Selección mapa");
         });
 
 
@@ -832,13 +1297,26 @@
             document.getElementById('calculating-bar').style.display = 'block';
             document.getElementById('content').innerHTML = '<div style="padding:20px; text-align:center;">Analizando recorridos...</div>';
 
-            const results = [];
-            const total = currentLines.length;
+            let results = [];
             let processed = 0;
 
-            // Process in batches
-            const BATCH_SIZE = 5;
-            const queue = [...currentLines];
+            // Process ONLY indexed lines
+            const indexed = IndexedLinesAPI.getIndexed();
+            const queue = currentLines.filter(line => indexed.includes(String(line.codLinea)));
+            const total = queue.length;
+            
+            if (total === 0) {
+                document.getElementById('calculating-bar').style.display = 'none';
+                document.getElementById('content').innerHTML = `
+                    <div style="padding:40px; text-align:center; color:#9ca3af;">
+                        <div style="font-size:48px; margin-bottom:16px;">🔍</div>
+                        <p><b>No hay líneas seleccionadas para buscar.</b></p>
+                        <p style="font-size:13px; margin-top:8px;">Ve al menú de <b>Configuración > Explorar Recorridos</b> para elegir las líneas que deseas indexar.</p>
+                        <button onclick="showItineraryExplorer()" style="margin-top:16px; background:#2563eb; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;">Configurar líneas</button>
+                    </div>`;
+                document.getElementById('status-text').innerText = "Sin selección";
+                return;
+            }
 
             async function processBatch() {
                 const batch = queue.splice(0, BATCH_SIZE);
@@ -852,32 +1330,51 @@
                         let route = await BusAPI.getRoute(line.codLinea);
                         if (!route || !route.nodos) return null;
 
-                        const path = route.nodos.map(n => ({ lat: n.latitud, lng: n.longitud }));
+                        const originalPath = route.nodos.map(n => ({ lat: n.latitud, lng: n.longitud }));
+                        
+                        // Try both orientations
+                        const combinations = [
+                            { path: originalPath, isReversed: false },
+                            { path: [...originalPath].reverse(), isReversed: true }
+                        ];
 
-                        // Calculate distance to destination
-                        const projDest = Geometry.projectOnPolyline(dest, path);
-                        const distDest = projDest.dist;
+                        let bestPathInfo = null;
+                        
+                        for (const combo of combinations) {
+                            const projDest = Geometry.projectOnPolyline(dest, combo.path);
+                            const projOrigin = origin ? Geometry.projectOnPolyline(origin, combo.path) : { dist: 0, index: 0 };
+                            
+                            if (projDest.dist > maxWalkDistance || (origin && projOrigin.dist > maxWalkDistance)) continue;
 
-                        if (distDest > maxWalkDistance) return null;
+                            let routeDist = 0;
+                            if (origin) {
+                                routeDist = Geometry.smartDistanceAlongRoute(origin, dest, combo.path);
+                                if (routeDist < 0) continue; // Not reachable in this direction
+                            }
 
-                        let distOrigin = 0;
-                        if (origin) {
-                            const projOrigin = Geometry.projectOnPolyline(origin, path);
-                            distOrigin = projOrigin.dist;
-
-                            if (distOrigin > maxWalkDistance) return null;
-
-                            // Check if origin->dest is reachable on this route
-                            const routeDist = Geometry.smartDistanceAlongRoute(origin, dest, path);
-                            if (routeDist < 0) return null; // Unreachable or wrong direction
+                            // If we already have a candidate, we'd pick the one with shorter total route distance or better OSM compliance
+                            // For now, if we find a valid orientation, we take it.
+                            if (!bestPathInfo || routeDist < bestPathInfo.routeDist) {
+                                bestPathInfo = {
+                                    path: combo.path,
+                                    isReversed: combo.isReversed,
+                                    routeDist,
+                                    distOrigin: projOrigin.dist,
+                                    distDest: projDest.dist
+                                };
+                            }
                         }
+
+                        if (!bestPathInfo) return null;
 
                         return {
                             line,
-                            distOrigin,
-                            distDest,
-                            totalWalk: distOrigin + distDest,
-                            path
+                            distOrigin: bestPathInfo.distOrigin,
+                            distDest: bestPathInfo.distDest,
+                            totalWalk: bestPathInfo.distOrigin + bestPathInfo.distDest,
+                            path: bestPathInfo.path,
+                            isReversed: bestPathInfo.isReversed,
+                            directionLocked: false
                         };
                     } catch (e) {
                         return null;
@@ -904,107 +1401,169 @@
 
 
 
-        async function renderResults(results) {
+        let resultsRefreshInterval = null;
+        async function renderResults(results, isAutomatic = false) {
             routeResults = results; // Store for later use
-            console.log(`Route search complete. Valid routes found: ${results.length}`);
+            saveSharedState();
 
-            document.getElementById('calculating-bar').style.display = 'none';
-
-            if (results.length === 0) {
-                document.getElementById('content').innerHTML = '<div style="padding:40px; text-align:center; color:#9ca3af;"><div style="font-size:48px; margin-bottom:16px;">😕</div><p>No se encontraron líneas cercanas.</p><p style="font-size:13px;">Intenta aumentar la distancia de caminata o busca otra dirección.</p></div>';
-                document.getElementById('status-text').innerText = "Sin resultados";
-                return;
+            if (!isAutomatic) {
+                console.log(`Route search complete. Valid routes found: ${results.length}`);
+                document.getElementById('calculating-bar').style.display = 'none';
+                if (results.length === 0) {
+                    document.getElementById('content').innerHTML = '<div style="padding:40px; text-align:center; color:#9ca3af;"><div style="font-size:48px; margin-bottom:16px;">😕</div><p>No se encontraron líneas cercanas.</p><p style="font-size:13px;">Intenta aumentar la distancia de caminata o busca otra dirección.</p></div>';
+                    document.getElementById('status-text').innerText = "Sin resultados";
+                    return;
+                }
+                document.getElementById('status-text').innerText = `Consultando disponibilidad de ${results.length} líneas...`;
             }
 
-            // Sort by total walking distance
-            results.sort((a, b) => a.totalWalk - b.totalWalk);
-
-            document.getElementById('status-text').innerText = `Consultando disponibilidad de ${results.length} líneas...`;
-
-            // First, render the cards with loading state
-            let html = '';
-            results.forEach(item => {
-                html += `
-                    <div class="line-card" onclick="selectLine('${item.line.codLinea}')" id="line-card-${item.line.codLinea}">
-                        <div class="line-info" style="width: 100%;">
-                            <div class="line-name">${item.line.descripcion}</div>
-                            <div class="line-buses" id="buses-${item.line.codLinea}" style="margin-top: 6px; font-size: 12px; color: #9ca3af;">
-                                ⏳ Consultando...
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            document.getElementById('content').innerHTML = html;
-
             // Now fetch bus counts and arrival times for each line
-            console.log('🔍 Fetching bus counts and arrival times for all lines...');
             const lineIds = results.map(r => r.line.codLinea);
-
-            // Fetch bus positions and calculate arrival times in parallel
             const busDataPromises = lineIds.map(async (lineId) => {
                 try {
                     const positions = await BusAPI.getBusPositions([lineId]);
                     const count = positions ? positions.length : 0;
+                    const result = results.find(r => r.line.codLinea == lineId);
 
-                    // Calculate next bus arrival if we have origin and positions
-                    let arrivalInfo = null;
-                    if (count > 0 && originLocation) {
-                        const result = results.find(r => r.line.codLinea == lineId);
-                        if (result) {
-                            arrivalInfo = calculateNextBusArrival(positions, result.path, originLocation, destinationLocation);
-                        }
+                    // Update movement history for arrival calculation
+                    if (count > 0 && result) {
+                        positions.forEach(bus => {
+                            const prev = busPositionsHistory[bus.codigo];
+                            const current = { lat: bus.latitud, lng: bus.longitud };
+                            if (prev) {
+                                const distMoved = Geometry.getDistance(prev, current);
+                                if (distMoved > 15) {
+                                    bus.inferredHeading = Geometry.getBearing(prev, current);
+                                }
+                            }
+                        });
                     }
 
-                    // Calculate travel time from origin to destination
+                    // Calculate arrival and travel info
+                    let arrivalInfo = null;
+                    let hasInitial = false;
                     let travelInfo = null;
-                    if (originLocation && destinationLocation) {
-                        const result = results.find(r => r.line.codLinea == lineId);
-                        if (result) {
+
+                    if (count > 0 && originLocation && result) {
+                        arrivalInfo = calculateNextBusArrival(positions, result.path, originLocation, destinationLocation);
+                        if (!arrivalInfo) {
+                            hasInitial = positions.some(bus => {
+                                const prev = busPositionsHistory[bus.codigo];
+                                const info = calculateTimeForBus(bus, result.path, originLocation, destinationLocation, null, prev);
+                                return info && (!info.isVerified || info.sense === 'STATIONARY' || info.sense === 'INITIAL');
+                            });
+                        }
+
+                        if (destinationLocation) {
                             travelInfo = calculateTravelTime(result.path, originLocation, destinationLocation);
                         }
+
+                        // Update history state for next refresh
+                        positions.forEach(bus => {
+                            const prev = busPositionsHistory[bus.codigo];
+                            const info = calculateTimeForBus(bus, result.path, originLocation, destinationLocation, null, prev);
+                            if (info) {
+                                busPositionsHistory[bus.codigo] = { 
+                                    lat: bus.latitud, 
+                                    lng: bus.longitud, 
+                                    time: Date.now(),
+                                    distance: info.distance,
+                                    consecutiveApproaching: info.consecutiveApproaching,
+                                    consecutiveAway: info.consecutiveAway,
+                                    confirmedSense: (info.consecutiveApproaching >= 2) ? 'APPROACHING' : (info.sense === 'AWAY' ? null : (prev?.confirmedSense || null))
+                                };
+                            }
+                        });
                     }
 
-                    return { lineId, count, arrivalInfo, travelInfo };
+                    return { lineId, count, arrivalInfo, travelInfo, hasInitial };
                 } catch (e) {
-                    console.error(`Error fetching buses for line ${lineId}:`, e);
+                    console.error(`Error processing line ${lineId}:`, e);
                     return { lineId, count: 0, arrivalInfo: null, travelInfo: null };
                 }
             });
 
             const busData = await Promise.all(busDataPromises);
+            const dataMap = new Map(busData.map(d => [String(d.lineId), d]));
 
-            console.log('✅ Bus data received:', busData);
-
-            // Sort results by arrival time AT DESTINATION (shortest first)
+            // Sort results by TOTAL TIME TO DESTINATION (shortest first)
             const sortedResults = [...results];
             sortedResults.sort((a, b) => {
-                const aData = busData.find(d => d.lineId == a.line.codLinea);
-                const bData = busData.find(d => d.lineId == b.line.codLinea);
+                const aData = dataMap.get(String(a.line.codLinea));
+                const bData = dataMap.get(String(b.line.codLinea));
 
-                // ETA at Destination = Time to Origin + Travel Time
-                const aArrival = aData?.arrivalInfo?.timeMinutes ?? Infinity;
+                const aWait = aData?.arrivalInfo?.timeMinutes ?? Infinity;
                 const aTravel = aData?.travelInfo?.timeMinutes ?? 0;
-                const aTotal = aArrival === Infinity ? Infinity : aArrival + aTravel;
+                const aTotal = aWait === Infinity ? Infinity : aWait + aTravel;
 
-                const bArrival = bData?.arrivalInfo?.timeMinutes ?? Infinity;
+                const bWait = bData?.arrivalInfo?.timeMinutes ?? Infinity;
                 const bTravel = bData?.travelInfo?.timeMinutes ?? 0;
-                const bTotal = bArrival === Infinity ? Infinity : bArrival + bTravel;
+                const bTotal = bWait === Infinity ? Infinity : bWait + bTravel;
 
+                // Priority: Confirmed Approaching > Detecting Motion > No approaching buses > No buses
                 if (aTotal !== bTotal) return aTotal - bTotal;
+                
+                // Tie-breaker: If both are infinite, prioritize "Detecting Motion" over "No approaching"
+                if (aTotal === Infinity && bTotal === Infinity) {
+                    if (aData?.hasInitial && !bData?.hasInitial) return -1;
+                    if (!aData?.hasInitial && bData?.hasInitial) return 1;
+                }
+
+                // Tie-breaker: wait time
+                if (aWait !== bWait) return aWait - bWait;
+                
                 return (bData?.count ?? 0) - (aData?.count ?? 0);
             });
 
             // Re-render with sorted results
-            html = '';
+            let html = '';
             sortedResults.forEach(item => {
+                const data = busData.find(d => d.lineId == item.line.codLinea);
+                let busHtml = '⏳ Consultando...';
+                
+                // Check if already audited
+                const audit = AuditAPI.getAudit(item.line.codLinea);
+                const auditBadge = audit ? `<span class="audited-badge" title="Sentido verificado via OSM">✅</span>` : '';
+
+                if (data) {
+                    if (data.count > 0) {
+                        busHtml = `<span style="color: #10b981; font-weight: 600;">🚌 ${data.count} activo${data.count > 1 ? 's' : ''}</span>`;
+                        if (data.arrivalInfo) {
+                            const waitTime = data.arrivalInfo.timeMinutes;
+                            const travelTime = data.travelInfo?.timeMinutes || 0;
+                            const totalTime = waitTime + travelTime;
+                            
+                            busHtml += `<br><span style="color: #2563eb; font-weight: 600;">⏱️ Próximo en ${waitTime} min</span>`;
+                            busHtml += `<br><span style="color: #4f46e5; font-size: 11px;">🏁 En destino en ~${totalTime} min</span>`;
+                        } else if (data.hasInitial) {
+                            busHtml += `<br><span style="color: #6b7280; font-weight: 500;">🔍 Localizando...</span>`;
+                        } else if (originLocation) {
+                            busHtml += `<br><span style="color: #f59e0b; font-weight: 500;">⚠️ Fuera de rango</span>`;
+                        }
+                    } else {
+                        busHtml = `<span style="color: #ef4444; font-weight: 500;">⚠️ Sin colectivos activos</span>`;
+                    }
+                }
+
+                const descParts = item.line.descripcion.split(' - ');
+                const lineTitle = descParts[0] || item.line.descripcion;
+                const lineSub = descParts.length > 1 ? descParts.slice(1).join(' - ') : '';
+
                 html += `
                     <div class="line-card" onclick="selectLine('${item.line.codLinea}')" id="line-card-${item.line.codLinea}">
                         <div class="line-info" style="width: 100%;">
-                            <div class="line-name">${item.line.descripcion}</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div class="line-name" style="margin-bottom: 0;">${lineTitle}</div>
+                                ${auditBadge}
+                            </div>
+                            <div class="line-meta" style="margin-bottom: 4px;">${lineSub}</div>
                             <div class="line-buses" id="buses-${item.line.codLinea}" style="margin-top: 6px; font-size: 12px; color: #9ca3af;">
-                                ⏳ Consultando...
+                                ${busHtml}
+                            </div>
+                            <!-- Itinerary Placeholder -->
+                            <div id="itinerary-${item.line.codLinea}" style="display: none; margin-top: 10px; padding: 10px; background: #f9fafb; border-radius: 6px; font-size: 11px; border: 1px solid #e5e7eb;">
+                                <div style="font-weight: 700; color: #374151; margin-bottom: 4px; text-transform: uppercase; font-size: 10px;">📋 Itinerario Sugerido</div>
+                                <div class="itinerary-content" style="color: #6b7280; line-height: 1.4;">Cargando itinerario...</div>
                             </div>
                         </div>
                     </div>
@@ -1012,289 +1571,240 @@
             });
             document.getElementById('content').innerHTML = html;
 
-            // Update each card with bus count and arrival time
-            busData.forEach(({ lineId, count, arrivalInfo, travelInfo }) => {
-                const busElement = document.getElementById(`buses-${lineId}`);
-                if (busElement) {
-                    let html = '';
-                    if (count > 0) {
-                        html += `<span style="color: #10b981; font-weight: 600;">🚌 ${count} colectivo${count > 1 ? 's' : ''} activo${count > 1 ? 's' : ''}</span>`;
-
-                        if (arrivalInfo) {
-                            html += `<br><span style="color: #2563eb; font-weight: 600;">⏱️ Próximo en ${arrivalInfo.timeMinutes} min (${arrivalInfo.distance}m)</span>`;
-                        } else if (originLocation) {
-                            html += `<br><span style="color: #f59e0b; font-weight: 500;">⚠️ Ninguno se acerca al origen</span>`;
-                        }
-
-                        // Show travel time if available
-                        if (travelInfo) {
-                            html += `<br><span style="color: #8b5cf6; font-weight: 600;">🕐 Viaje: ~${travelInfo.timeMinutes} min (${(travelInfo.distance / 1000).toFixed(1)} km)</span>`;
-                        }
-                    } else {
-                        html = `<span style="color: #ef4444; font-weight: 500;">⚠️ Sin colectivos activos</span>`;
-                    }
-                    busElement.innerHTML = html;
-                }
-            });
-
-            updateStatusInResults(`Se encontraron ${results.length} líneas cercanas`);
-
-            // Show "Ver Resultados" button on mobile
-            const viewResultsBtn = document.getElementById('view-results-btn');
+                 const viewResultsBtn = document.getElementById('view-results-btn');
             if (viewResultsBtn && window.innerWidth <= 768) {
                 viewResultsBtn.style.display = 'block';
             }
         }
 
-        let walkingLayerGroup = L.layerGroup(); // Group for walking lines
+        let walkingLayerGroup = L.layerGroup().addTo(map);
 
-        function selectLine(lineId, isReversed = false) {
-            console.log('Selected line:', lineId);
+        // Select a specific line to track
+        async function selectLine(lineId, isReversed = false) {
+            console.log(`📍 Selecting line ${lineId} (Initial Reversed: ${isReversed})`);
+            isViewingAll = false; // Stop multi-route refresh
             currentSelectedLineId = lineId;
-            localStorage.setItem('last_selected_line', lineId);
+            
+            // --- ITINERARY DISPLAY ---
+            // Hide all other itineraries
+            document.querySelectorAll('[id^="itinerary-"]').forEach(el => el.style.display = 'none');
+            
+            const itineraryEl = document.getElementById(`itinerary-${lineId}`);
+            if (itineraryEl) {
+                itineraryEl.style.display = 'block';
+                const contentEl = itineraryEl.querySelector('.itinerary-content');
+                const saved = DatabaseAPI.getItinerary(lineId);
+                if (saved && saved.streets) {
+                    contentEl.innerHTML = saved.streets.join(' → ');
+                } else {
+                    contentEl.innerHTML = '<i>Itinerario no disponible aún.</i>';
+                }
+            }
+            // -------------------------
+            
+            // 1. CLEAR PREVIOUS STATE
+            if (currentRouteLayer) map.removeLayer(currentRouteLayer);
+            if (window.routeDecorator) map.removeLayer(window.routeDecorator);
+            walkingLayerGroup.clearLayers();
+            window.resetBusHistoryForLine(lineId);
 
-            // Find the route in results
             const result = routeResults.find(r => r.line.codLinea == lineId);
             if (!result) return;
 
-            // Remove previous route
-            if (currentRouteLayer) {
-                map.removeLayer(currentRouteLayer);
-            }
-            if (window.routeDecorator) {
-                map.removeLayer(window.routeDecorator);
-            }
-            if (walkingLayerGroup) {
-                walkingLayerGroup.clearLayers();
-            }
-            walkingLayerGroup.addTo(map);
-
-            // Clear multi-route if active
-            multiRouteLayers.forEach(l => map.removeLayer(l));
-            multiRouteLayers = [];
-
-            // Always display the complete route from the API
-            const pathToDisplay = result.path;
-
-            // Calculate exact trip segment indices for logic filtering
-            currentTripIndices = null;
-            if (originLocation && destinationLocation) {
-                currentTripIndices = Geometry.getTripSegmentIndices(originLocation, destinationLocation, pathToDisplay);
-                if (currentTripIndices) {
-                    console.log('🔒 Trip Segment Locked:', currentTripIndices);
-                }
-            }
-
-            // Directionality validation with OSM (Batch)
-            async function validateRouteDirection() {
-                const floatBar = document.getElementById('route-status-float');
-                try {
+            let currentIsReversed = isReversed || result.isReversed || false;
+            let pathToDisplay = currentIsReversed ? [...result.path].reverse() : result.path;
+            const floatBar = document.getElementById('route-status-float');
+            
+            // 2. CONTEXTUAL OSM AUDIT
+            try {
+                if (floatBar) {
                     floatBar.style.display = 'flex';
-                    floatBar.innerHTML = `🔍 Analizando flujo de colectivos...`;
+                    floatBar.innerHTML = `<div class="spinner-small" style="margin-right:8px;"></div> <span>Analizando alineación...</span>`;
+                }
 
-                    // 1. First, check actual bus movement (most reliable evidence)
-                    const busPositions = await BusAPI.getBusPositions(lineId);
-                    const motionCheck = Geometry.detectBusMotionInversion(busPositions, pathToDisplay);
-
-                    if (motionCheck.isMismatch) {
-                        console.warn(`🚨 Real-time Motion Inversion detected for ${lineId}! Reversing...`);
-                        floatBar.innerHTML = `<span style="color: #3b82f6; font-weight: bold;">🔄 Corrigiendo sentido (Movimiento)...</span>`;
-                        result.path.reverse();
-                        setTimeout(() => { selectLine(lineId, true); }, 300);
-                        return;
+                console.log(`🔍 OSM Alignment Validation for line ${lineId} trip...`);
+                // Audit the current path view
+                const audit = await AuditAPI.runAudit(lineId, pathToDisplay);
+                
+                if (audit && audit.isReversed) {
+                    console.log(`🚨 OSM Mismatch found for this trip! Aligning to OSM senses.`);
+                    currentIsReversed = !currentIsReversed;
+                    pathToDisplay = currentIsReversed ? [...result.path].reverse() : result.path;
+                    result.isReversed = currentIsReversed;
+                    
+                    if (floatBar) {
+                        floatBar.innerHTML = `<span style="color: #60a5fa;">✅ Ruta alineada con OSM</span>`;
                     }
-
-                    // 2. Fallback to OSM (Legal Traffic Law)
-                    floatBar.innerHTML = `🔍 Validando con OpenStreetMap...`;
-
-                    const sampleIndices = [];
-                    // Sample ~30 points spread evenly across the route
-                    for (let i = 0.03; i < 1.0; i += 0.033) {
-                        sampleIndices.push(Math.floor(pathToDisplay.length * i));
+                } else if (audit) {
+                    if (floatBar) {
+                        floatBar.innerHTML = `<span>✅ Sentido validado (OSM)</span>`;
                     }
-                    const finalIndices = [...new Set(sampleIndices)].filter(i => i < pathToDisplay.length - 1);
-                    const samplePoints = finalIndices.map(idx => pathToDisplay[idx]);
-
-                    const batchWays = await OSMAPI.getBatchWayDetails(samplePoints);
-
-                    let mismatchCount = 0;
-                    let matchCount = 0;
-                    let validOneWayCount = 0;
-
-                    let foundStreets = new Set();
-                    finalIndices.forEach((idx, i) => {
-                        const p1 = pathToDisplay[idx];
-                        const p2 = pathToDisplay[idx + 1];
-                        const bearing = Geometry.getBearing(p1, p2);
-
-                        // Find ways in batch results close to this specific sample point
-                        const nearbyWays = batchWays.filter(w => {
-                            if (!w.geometry) return false;
-                            return w.geometry.some(gp => {
-                                const dist = Geometry.getDistance(p1, { lat: gp.lat, lng: gp.lon || gp.lng });
-                                return dist < 80; // Match within search radius
-                            });
-                        });
-
-                        const check = Geometry.checkDirection(bearing, nearbyWays);
-                        if (check.wayResolved && check.wayResolved.tags.oneway && check.wayResolved.tags.oneway !== "no") {
-                            validOneWayCount++;
-                            if (check.isMismatch) mismatchCount++;
-                            else if (check.isExplicitMatch) matchCount++;
-
-                            if (check.wayResolved.tags.name) foundStreets.add(check.wayResolved.tags.name);
-                        }
-                    });
-
-                    console.log(`📊 Consensus (${lineId}): OK=${matchCount}, ERR=${mismatchCount}, OSMSets=${validOneWayCount}`);
-
-                    if (validOneWayCount > 0 && mismatchCount > matchCount) {
-                        console.error(`🚨 Inversion Verified for ${lineId}! (${mismatchCount} err) Reversing...`);
-                        floatBar.innerHTML = `<span style="color: #3b82f6; font-weight: bold;">🔄 Corrigiendo sentido...</span>`;
-                        result.path.reverse();
-                        setTimeout(() => { selectLine(lineId, true); }, 300);
-                        return;
-                    }
-
-                    const icon = (validOneWayCount > 0 && mismatchCount === 0) ? '✅' : 'ℹ️';
-                    const listStr = Array.from(foundStreets).slice(0, 3).join(', ');
-                    const infoText = validOneWayCount > 0
-                        ? `En: ${listStr}...`
-                        : 'Ruta cargada';
-
-                    floatBar.innerHTML =
-                        `<span>${icon} ${infoText}</span> <a href="#" onclick="window.reverseCurrentLine(); return false;">¿Invertir Sentido?</a>`;
-                } catch (e) {
-                    console.error("OSM Validation Error:", e);
-                    floatBar.innerHTML = `<span>⚠️ Error de validación</span> <a href="#" onclick="window.reverseCurrentLine(); return false;">¿Invertir Sentido?</a>`;
                 }
+            } catch (e) {
+                console.warn("Contextual audit failed (offline?)", e);
+                if (floatBar) floatBar.style.display = 'none';
             }
 
-            // Global helper for manual override
-            window.reverseCurrentLine = () => {
-                if (!currentSelectedLineId) return;
-                const res = routeResults.find(r => r.line.codLinea == currentSelectedLineId);
-                if (res) {
-                    res.path.reverse();
-                    selectLine(currentSelectedLineId, true);
-                }
-            };
-
-            if (!isReversed) { // Only validate direction if not already reversed
-                validateRouteDirection();
-            }
-
-            // Draw walking lines if we have origin/destination
-            if (originLocation) {
-                const proj = Geometry.projectOnPolyline(originLocation, pathToDisplay);
-                if (proj.point) {
-                    L.polyline([
-                        [originLocation.lat, originLocation.lng],
-                        [proj.point.lat, proj.point.lng]
-                    ], {
-                        color: '#6b7280',
-                        weight: 3,
-                        dashArray: '10, 10',
-                        opacity: 0.8
-                    }).addTo(walkingLayerGroup);
-                }
-            }
-
-            if (destinationLocation) {
-                const proj = Geometry.projectOnPolyline(destinationLocation, pathToDisplay);
-                if (proj.point) {
-                    L.polyline([
-                        [destinationLocation.lat, destinationLocation.lng],
-                        [proj.point.lat, proj.point.lng]
-                    ], {
-                        color: '#6b7280',
-                        weight: 3,
-                        dashArray: '10, 10', // Dashed line
-                        opacity: 0.8
-                    }).addTo(walkingLayerGroup);
-                }
-            }
-
-            // Draw route on map
-            // Style matches official miredbus (Red line, no arrows)
+            // 3. DRAW ROUTE (This happens after the audit await)
             const latLngs = pathToDisplay.map(p => [p.lat, p.lng]);
             currentRouteLayer = L.polyline(latLngs, {
-                color: '#ef4444', // Red color like official site
+                color: '#ef4444', 
                 weight: 5,
                 opacity: 0.8
             }).addTo(map);
 
-            // Add route direction arrows
             window.routeDecorator = L.polylineDecorator(currentRouteLayer, {
-                patterns: [
-                    {
-                        offset: '5%',
-                        repeat: '20%',
-                        symbol: L.Symbol.arrowHead({
-                            pixelSize: 12,
-                            polygon: false,
-                            pathOptions: { stroke: true, color: '#ef4444', weight: 3, opacity: 0.9 }
-                        })
-                    }
-                ]
+                patterns: [{
+                    offset: '5%', repeat: '20%',
+                    symbol: L.Symbol.arrowHead({
+                        pixelSize: 12, polygon: false,
+                        pathOptions: { stroke: true, color: '#ef4444', weight: 3, opacity: 0.9 }
+                    })
+                }]
             }).addTo(map);
 
-            // Fit map to route (include walking paths in bounds)
+            // Draw walking lines
+            if (originLocation) {
+                const proj = Geometry.projectOnPolyline(originLocation, pathToDisplay);
+                if (proj.point) {
+                    L.polyline([[originLocation.lat, originLocation.lng], [proj.point.lat, proj.point.lng]], {
+                        color: '#6b7280', weight: 3, dashArray: '10, 10', opacity: 0.8
+                    }).addTo(walkingLayerGroup);
+                }
+            }
+            if (destinationLocation) {
+                const proj = Geometry.projectOnPolyline(destinationLocation, pathToDisplay);
+                if (proj.point) {
+                    L.polyline([[destinationLocation.lat, destinationLocation.lng], [proj.point.lat, proj.point.lng]], {
+                        color: '#6b7280', weight: 3, dashArray: '10, 10', opacity: 0.8
+                    }).addTo(walkingLayerGroup);
+                }
+            }
+
+            // 4. MAP VIEW & UI
             const bounds = currentRouteLayer.getBounds();
             if (originLocation) bounds.extend([originLocation.lat, originLocation.lng]);
             if (destinationLocation) bounds.extend([destinationLocation.lat, destinationLocation.lng]);
 
-            // First fit the bounds to see the whole path
-            map.fitBounds(bounds, { padding: [50, 50] });
-
-            // After a small delay or immediately, center specifically on ORIGIN if it exists
             if (originLocation) {
-                setTimeout(() => {
-                    map.setView([originLocation.lat, originLocation.lng], 16);
-                }, 600);
+                map.setView([originLocation.lat, originLocation.lng], 16);
+            } else {
+                map.fitBounds(bounds, { padding: [50, 50] });
             }
 
-            updateStatusInResults(`🚌 Buscando colectivos de línea ${lineId}...`);
+            document.getElementById('back-btn').style.display = 'block';
+            updateStatusInResults(`🚌 Colectivos de línea ${lineId}`);
 
-            // Start tracking buses for this line
-            trackBuses(lineId);
+            // 5. START TRACKING
+            trackBuses(lineId, isReversed);
         }
 
-        // Bus tracking
+        // Global Helpers
+        window.reverseCurrentLine = () => {
+            if (!currentSelectedLineId) return;
+            const res = routeResults.find(r => r.line.codLinea == currentSelectedLineId);
+            if (res) {
+                res.isReversed = !res.isReversed;
+                selectLine(currentSelectedLineId, res.isReversed);
+            }
+        };
+
+        window.manualReAudit = async (lineId) => {
+            const result = routeResults.find(r => r.line.codLinea == lineId);
+            if (!result) return;
+            const floatBar = document.getElementById('route-status-float');
+            if (floatBar) floatBar.innerHTML = `🔍 Re-auditando con OSM...`;
+            
+            const audit = await AuditAPI.runAudit(lineId, result.path);
+            if (audit) {
+                alert(`✅ Auditoría completada. Sentido: ${audit.isReversed ? 'Invertido' : 'Normal'}`);
+                selectLine(lineId, audit.isReversed);
+            }
+        };
+
+        window.resetBusHistoryForLine = (lineId) => {
+            console.log(`🧹 Resetting bus history...`);
+            for (const code in busPositionsHistory) {
+                busPositionsHistory[code].confirmedSense = null;
+                busPositionsHistory[code].consecutiveApproaching = 0;
+            }
+        };
+
+        // Bus tracking state
         let busMarkers = [];
         let busTrackingInterval = null;
 
         // Calculate arrival time for a specific bus
-        function calculateTimeForBus(bus, path, originPoint, destinationPoint = null) {
+        // ABSOLUTE STRICTNESS: Requires validated history and confirmed movement direction
+        function calculateTimeForBus(bus, path, originPoint, destinationPoint = null, overrideHeading = null, prevEntry = null) {
             if (!bus || !path || !originPoint) return null;
 
             const dest = destinationPoint || destinationLocation;
-            // Get specific indices for the trip on this route
             const tripIndices = (originPoint && dest) ? Geometry.getTripSegmentIndices(originPoint, dest, path) : null;
 
             const busPoint = { lat: bus.latitud, lng: bus.longitud };
             let distance = -1;
 
+            const headingToUse = bus.inferredHeading || overrideHeading || bus.orientacion;
+
             if (tripIndices) {
-                // Strict filtering based on locked user trip leg
-                distance = Geometry.distanceToRouteIndex(busPoint, tripIndices.startIndex, path, bus.orientacion);
+                distance = Geometry.distanceToRouteIndex(busPoint, tripIndices.startIndex, path, headingToUse);
             } else {
-                // Fallback if no destination
                 distance = Geometry.smartDistanceAlongRoute(busPoint, originPoint, path);
             }
 
             if (distance < 0) return null;
 
-            // Estimate time
-            const velocity = bus.velocidad || 20; // Default 20 km/h
+            const velocity = bus.velocidad || 20; 
             const velocityMPerMin = (velocity * 1000) / 60;
             const timeMinutes = distance / velocityMPerMin;
 
-            return {
+            // --- MOVEMENT DETECTION ---
+            let sense = 'INITIAL';
+            const prevConsecutiveAway = prevEntry?.consecutiveAway || 0;
+            const prevConsecutiveApproaching = prevEntry?.consecutiveApproaching || 0;
+
+            const now = Date.now();
+            const isHistoryValid = prevEntry && (now - prevEntry.time < 5 * 60 * 1000);
+
+            if (isHistoryValid && prevEntry.distance !== undefined) {
+                const diff = distance - prevEntry.distance;
+                
+                if (bus.inferredHeading) {
+                    if (Math.abs(diff) < 10) {
+                        sense = 'STATIONARY';
+                    } else if (diff < -10) {
+                        sense = 'APPROACHING';
+                    } else if (diff > 10) {
+                        sense = 'AWAY';
+                    }
+                } else {
+                    sense = 'STATIONARY'; 
+                }
+
+            }
+
+            const res = {
                 distance: Math.round(distance),
                 timeMinutes: Math.round(timeMinutes),
-                velocity: Math.round(velocity)
+                velocity: Math.round(velocity),
+                sense: sense,
+                consecutiveApproaching: (sense === 'APPROACHING') ? (prevConsecutiveApproaching + 1) : 0,
+                consecutiveAway: (sense === 'AWAY') ? (prevConsecutiveAway + 1) : 0,
+                hasHistory: isHistoryValid,
+                // PERMISSIVE: Verified by default if INITIAL or if approaching
+                isVerified: (sense === 'INITIAL' || sense === 'APPROACHING' || (sense === 'STATIONARY' && prevConsecutiveApproaching > 0))
             };
+
+            // If we have history and it's clearly moving away, unverify
+            if (res.consecutiveAway >= 2) res.isVerified = false;
+
+            // TRACE LOG
+            if (bus._trace) {
+                console.log(`[Trace ${bus.codigo}] Dist: ${res.distance}m, Sense: ${res.sense}, Verified: ${res.isVerified}`);
+            }
+
+            return res;
         }
 
         // Calculate next bus arrival time to origin point
@@ -1302,12 +1812,17 @@
             if (!positions || positions.length === 0 || !originPoint) return null;
 
             let closestBus = null;
-            let minTime = Infinity;
+            let minDist = Infinity;
+
+            // Only trace first 3 buses to avoid console flood
+            positions.forEach((bus, i) => { if (i < 3) bus._trace = true; });
 
             positions.forEach(bus => {
-                const info = calculateTimeForBus(bus, path, originPoint, destinationPoint);
-                if (info && info.timeMinutes < minTime) {
-                    minTime = info.timeMinutes;
+                const prev = busPositionsHistory[bus.codigo];
+                const info = calculateTimeForBus(bus, path, originPoint, destinationPoint, null, prev);
+                
+                if (info && info.isVerified && info.distance < minDist) {
+                    minDist = info.distance;
                     closestBus = info;
                 }
             });
@@ -1315,31 +1830,18 @@
             return closestBus;
         }
 
-
-
-        // Detect correct route direction (handles bidirectional routes)
-        function getCorrectRouteDirection(path, originPoint, destPoint) {
-            // Function logic kept for reference but mostly unused now
-            if (!path || !originPoint || !destPoint) return { path: path, isReversed: false };
-            return { path: path, isReversed: false };
-        }
-
         // Calculate estimated travel time from origin to destination along route
         function calculateTravelTime(path, originPoint, destPoint) {
             if (!path || !originPoint || !destPoint) return null;
 
             // Calculate distance along the route from origin to destination
-            // Using smart calculation to handle loops/overlaps
             const distance = Geometry.smartDistanceAlongRoute(originPoint, destPoint, path);
-
-            // If negative, destination comes before origin on the route (wrong direction)
             if (distance < 0) return null;
 
-            // Average bus speed in km/h (considering stops, traffic, etc.)
+            // Average bus speed in km/h 
             const averageSpeed = 20; // km/h
-            const speedMPerMin = (averageSpeed * 1000) / 60; // meters per minute
+            const speedMPerMin = (averageSpeed * 1000) / 60;
 
-            // Calculate time in minutes
             const timeMinutes = distance / speedMPerMin;
 
             return {
@@ -1348,27 +1850,20 @@
             };
         }
 
-        async function trackBuses(lineId) {
+        // Bus tracking hook for global refresh
+        window.triggerTrackUpdate = null;
+
+        async function trackBuses(lineId, isReversed = false) {
             // Clear previous tracking
-            if (busTrackingInterval) {
-                clearInterval(busTrackingInterval);
-            }
+            if (busTrackingInterval) clearInterval(busTrackingInterval);
             busMarkers.forEach(m => map.removeLayer(m));
             busMarkers = [];
-
-            // Create custom bus icon
-            const busIcon = L.divIcon({
-                className: 'bus-marker',
-                html: '<div style="background:#ef4444; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold; border:2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3);">🚌</div>',
-                iconSize: [24, 24]
-            });
 
             async function updateBuses() {
                 try {
                     console.log(`🔍 Fetching bus positions for line ${lineId}...`);
                     const positions = await BusAPI.getBusPositions([lineId]);
-                    console.log(`📍 Received ${positions ? positions.length : 0} bus positions`);
-
+                    
                     // Clear old markers
                     busMarkers.forEach(m => map.removeLayer(m));
                     busMarkers = [];
@@ -1376,53 +1871,112 @@
                     if (positions && positions.length > 0) {
                         const result = routeResults.find(r => r.line.codLinea == lineId);
 
+                        // 1. ENRICH & INFER PHASE
                         positions.forEach(bus => {
-                            console.log(`🚌 Bus at: ${bus.latitud}, ${bus.longitud}, speed: ${bus.velocidad || 0} km/h`);
+                            let inferredHeading = bus.orientacion || 0;
+                            const prev = busPositionsHistory[bus.codigo];
+                            const current = { lat: bus.latitud, lng: bus.longitud };
+                            
+                            if (prev) {
+                                const distMoved = Geometry.getDistance(prev, current);
+                                if (distMoved > 15) {
+                                    inferredHeading = Geometry.getBearing(prev, current);
+                                    bus.inferredHeading = inferredHeading; // Enable strict inversion detection
+                                }
+                            }
+                            bus.orientacion = inferredHeading;
+                        });
 
-                            // Calculate individual arrival time for this bus
+                        // 2. RENDERING PHASE
+                        let approachingCount = 0;
+
+                        positions.forEach(bus => {
                             let arrivalLabel = '';
+                            const prev = busPositionsHistory[bus.codigo];
+                            
                             if (result && originLocation) {
-                                const info = calculateTimeForBus(bus, result.path, originLocation, destinationLocation);
+                                const info = calculateTimeForBus(bus, result.path, originLocation, destinationLocation, null, prev);
                                 if (info) {
-                                    arrivalLabel = `<div style="position: absolute; top: -25px; left: 50%; transform: translateX(-50%); background: white; color: #2563eb; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold; white-space: nowrap; border: 1px solid #2563eb; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">${info.timeMinutes} min</div>`;
+                                    bus._tempDist = info.distance;
+                                    bus._currentInfo = info;
+                                    
+                                    if (info.isVerified) {
+                                        approachingCount++;
+                                        arrivalLabel = `<div style="position: absolute; top: -25px; left: 50%; transform: translateX(-50%); background: white; color: #2563eb; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold; white-space: nowrap; border: 1px solid #2563eb; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">${info.timeMinutes} min</div>`;
+                                    } else if (info.sense === 'AWAY') {
+                                        arrivalLabel = `<div style="position: absolute; top: -25px; left: 50%; transform: translateX(-50%); background: #fee2e2; color: #ef4444; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold; white-space: nowrap; border: 1px solid #ef4444; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">Se aleja</div>`;
+                                    } else {
+                                        hasPendingMotion = true;
+                                        arrivalLabel = `<div style="position: absolute; top: -25px; left: 50%; transform: translateX(-50%); background: #f3f4f6; color: #6b7280; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold; white-space: nowrap; border: 1px solid #9ca3af; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">🔍 En proceso...</div>`;
+                                    }
                                 }
                             }
 
                             const customIcon = L.divIcon({
                                 className: 'bus-marker-wrapper',
-                                html: `
-                                    <div style="position: relative;">
-                                        ${arrivalLabel}
-                                        <div style="background:#ef4444; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold; border:2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3);">🚌</div>
-                                    </div>
-                                `,
+                                html: `<div style="position: relative;">${arrivalLabel}<div style="background:#ef4444; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold; border:2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3);">🚌</div></div>`,
                                 iconSize: [24, 24],
                                 iconAnchor: [12, 12]
                             });
 
                             const marker = L.marker([bus.latitud, bus.longitud], { icon: customIcon })
-                                .bindPopup(`<strong>Línea ${lineId}</strong><br>Velocidad: ${bus.velocidad || 0} km/h`)
+                                .bindPopup(`<strong>Línea ${lineId}</strong><br>Velocidad: ${bus.velocidad || 0} km/h${bus._tempDist ? `<br>Distancia: ${bus._tempDist}m` : ''}`)
                                 .addTo(map);
                             busMarkers.push(marker);
                         });
-                        console.log(`✅ Updated ${positions.length} bus positions for line ${lineId}`);
 
-                        // Calculate next bus arrival if origin is set
+                        // 3. HISTORY UPDATE PHASE
+                        positions.forEach(bus => {
+                            const prev = busPositionsHistory[bus.codigo];
+                            const currentInfo = bus._currentInfo || {};
+                            
+                            let confirmedSense = (currentInfo.consecutiveApproaching >= 2) ? 'APPROACHING' : (prev?.confirmedSense || null);
+                            if (currentInfo.sense === 'AWAY') confirmedSense = null;
+
+                            busPositionsHistory[bus.codigo] = { 
+                                lat: bus.latitud, 
+                                lng: bus.longitud, 
+                                time: Date.now(),
+                                distance: bus._tempDist,
+                                consecutiveApproaching: currentInfo.consecutiveApproaching || 0,
+                                consecutiveAway: currentInfo.consecutiveAway || 0,
+                                confirmedSense: confirmedSense
+                            };
+                        });
+
+                        // 4. STATUS UPDATE PHASE
                         if (result && originLocation) {
-                            const nextBus = calculateNextBusArrival(positions, result.path, originLocation);
+                            const nextBus = calculateNextBusArrival(positions, result.path, originLocation, destinationLocation);
                             if (nextBus) {
                                 document.getElementById('status-text').innerText =
                                     `🚌 ${positions.length} colectivo(s) • ⏱️ Próximo en ${nextBus.timeMinutes} min (${nextBus.distance}m)`;
-                                console.log(`⏱️ Next bus arrival: ${nextBus.timeMinutes} min, ${nextBus.distance}m away at ${nextBus.velocity} km/h`);
+                            } else if (hasPendingMotion) {
+                                document.getElementById('status-text').innerText =
+                                    `🚌 ${positions.length} colectivo(s) • 🔍 Detectando movimiento...`;
                             } else {
                                 document.getElementById('status-text').innerText =
                                     `🚌 ${positions.length} colectivo(s) • ⚠️ Ninguno se acerca al origen`;
                             }
-                        } else {
-                            document.getElementById('status-text').innerText = `🚌 ${positions.length} colectivo(s) activo(s) en línea ${lineId}`;
+
+                            // persistently check for inversion
+                            if (!isReversed && positions.length > 0) {
+                                const motion = Geometry.detectBusMotionInversion(positions, result.path);
+                                if (motion.isMismatch) {
+                                    result.mismatchCycleCount = (result.mismatchCycleCount || 0) + 1;
+                                    const threshold = result.directionLocked ? 6 : 2;
+                                    if (result.mismatchCycleCount >= threshold) {
+                                        result.directionLocked = true;
+                                        result.mismatchCycleCount = 0;
+                                        window.resetBusHistoryForLine(lineId);
+                                        renderResults(routeResults, true);
+                                        setTimeout(() => { window.reverseCurrentLine(); }, 500);
+                                    }
+                                } else {
+                                    result.mismatchCycleCount = 0;
+                                }
+                            }
                         }
                     } else {
-                        console.log(`⚠️ No buses found for line ${lineId}`);
                         document.getElementById('status-text').innerText = `Sin colectivos activos en línea ${lineId}`;
                     }
                 } catch (e) {
@@ -1431,16 +1985,20 @@
                 }
             }
 
+            window.triggerTrackUpdate = updateBuses;
+
             // Update immediately and then every 10 seconds
             updateBuses();
             busTrackingInterval = setInterval(updateBuses, 10000);
         }
 
         let multiRouteLayers = [];
+        let isViewingAll = false; // Flag for multi-route view
         const routeColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316'];
 
         async function viewAllOnMap() {
             console.log("Viewing all routes on map...");
+            isViewingAll = true;
 
             // Clear regular tracking
             if (busTrackingInterval) clearInterval(busTrackingInterval);
@@ -1493,7 +2051,9 @@
                 }
             }
 
-            if (!bounds.isEmpty()) {
+            if (originLocation) {
+                map.setView([originLocation.lat, originLocation.lng], 16);
+            } else if (!bounds.isEmpty()) {
                 map.fitBounds(bounds, { padding: [50, 50] });
             }
 
@@ -1506,14 +2066,28 @@
         }
 
         function goBack() {
+            // Priority: If in Explorer Mode, reset to search
+            if (document.getElementById('status-text').innerText.includes("📖 Explorador")) {
+                document.getElementById('panel').classList.remove('explorer-full');
+                resetSearch();
+                return;
+            }
+
+            document.getElementById('panel').classList.remove('explorer-full');
             document.getElementById('back-btn').style.display = 'none';
+            isViewingAll = false;
+            window.triggerTrackUpdate = null;
 
             // Clear multi-route if active
             multiRouteLayers.forEach(l => map.removeLayer(l));
             multiRouteLayers = [];
 
             // Reset UI
-            updateStatusInResults(`Se encontraron ${routeResults.length} líneas cercanas`);
+            if (routeResults.length > 0) {
+                updateStatusInResults(`Se encontraron ${routeResults.length} líneas cercanas`);
+            } else {
+                document.getElementById('status-text').innerText = "Selecciona los puntos A y B en el mapa.";
+            }
 
             // Stop bus tracking
             if (busTrackingInterval) {
@@ -1528,6 +2102,8 @@
 
         function resetSearch() {
             console.log("Resetting search...");
+            isViewingAll = false;
+            window.triggerTrackUpdate = null;
 
             // Reset mode
             mapSelectionMode = null;
@@ -1542,6 +2118,8 @@
             if (destMarker) map.removeLayer(destMarker);
             originMarker = null;
             destMarker = null;
+
+            localStorage.removeItem('shared_bus_radar_state');
 
             // Clear routes and tracking
             if (currentRouteLayer) map.removeLayer(currentRouteLayer);
@@ -1698,6 +2276,373 @@
                 console.log('Debug log cleared');
             }
         }
+
+        // === REAL-TIME REFRESH SYSTEM ===
+        let globalRefreshInterval = null;
+
+        async function refreshAllVisibleBuses() {
+            console.log("🔄 Global Refresh Triggered");
+            
+            // 1. Refresh Search Results List (always do this if results exist)
+            if (routeResults.length > 0 && !isViewingAll) {
+                console.log(`Refreshing info and SORTING for ${routeResults.length} lines in list`);
+                await renderResults(routeResults, true);
+            }
+
+            // 2. Refresh Individual Tracked Line on Map
+            if (window.triggerTrackUpdate && !isViewingAll) {
+                console.log(`Refreshing tracked line`);
+                window.triggerTrackUpdate();
+            }
+
+            // 3. Refresh "View All" Multi-route Buses
+            if (isViewingAll) {
+                console.log("Refreshing all buses for View All mode");
+                // Clear old multi-route bus markers (not lines)
+                multiRouteLayers.forEach(l => {
+                    if (l instanceof L.Marker && l.options.icon && l.options.icon.options.className === 'bus-marker-multi') {
+                        map.removeLayer(l);
+                    }
+                });
+                multiRouteLayers = multiRouteLayers.filter(l => !(l instanceof L.Marker && l.options.icon && l.options.icon.options.className === 'bus-marker-multi'));
+
+                const topResults = routeResults.slice(0, 8);
+                for (let i = 0; i < topResults.length; i++) {
+                    // Critical check: if user switched mode while we were fetching previous line
+                    if (!isViewingAll) {
+                        console.log("🛑 Global refresh aborted: View All no longer active");
+                        // Clear markers that might have been added in this race condition
+                        multiRouteLayers.forEach(l => map.removeLayer(l));
+                        multiRouteLayers = [];
+                        return;
+                    }
+                    
+                    const item = topResults[i];
+                    const color = routeColors[i % routeColors.length];
+                    try {
+                        const positions = await BusAPI.getBusPositions([item.line.codLinea]);
+                        
+                        // Re-check after await
+                        if (!isViewingAll) {
+                            multiRouteLayers.forEach(l => map.removeLayer(l));
+                            multiRouteLayers = [];
+                            return;
+                        }
+
+                        positions.forEach(bus => {
+                            const busIcon = L.divIcon({
+                                className: 'bus-marker-multi',
+                                html: `<div style="background:${color}; color:white; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; border:2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3);">🚌</div>`,
+                                iconSize: [20, 20],
+                                iconAnchor: [10, 10]
+                            });
+                            const marker = L.marker([bus.latitud, bus.longitud], { icon: busIcon })
+                                .bindPopup(`<strong>Línea ${item.line.codLinea}</strong><br>${item.line.descripcion}`)
+                                .addTo(map);
+                            multiRouteLayers.push(marker);
+                        });
+                    } catch (e) {}
+                }
+            } else {
+                // Extra safety: if isViewingAll is false but markers exist, purge them
+                if (multiRouteLayers.length > 0) {
+                    console.log("🧹 Purging residual multi-route markers");
+                    multiRouteLayers.forEach(l => map.removeLayer(l));
+                    multiRouteLayers = [];
+                }
+            }
+
+            // --- History Cleanup ---
+            // Remove entries older than 10 minutes to save memory
+            const now = Date.now();
+            const tenMinutesAgo = now - (10 * 60 * 1000);
+            for (const code in busPositionsHistory) {
+                if (busPositionsHistory[code].time < tenMinutesAgo) {
+                    delete busPositionsHistory[code];
+                }
+            }
+        }
+
+        // Visibility Change Listener
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                console.log("👀 App back to foreground. Forcing refresh...");
+                refreshAllVisibleBuses();
+            }
+        });
+
+        // Initialize Global Interval
+        function startGlobalRefresh() {
+            if (globalRefreshInterval) clearInterval(globalRefreshInterval);
+            globalRefreshInterval = setInterval(refreshAllVisibleBuses, 15000); // 15 seconds
+        }
+        startGlobalRefresh();
+
+        // --- STREET DIRECTIONS (OSM ONLY) ---
+        async function toggleStreetDirections() {
+            showStreetDirections = !showStreetDirections;
+            const btn = document.getElementById('street-sense-btn');
+            
+            if (showStreetDirections) {
+                btn.style.background = '#059669';
+                btn.style.color = 'white';
+                btn.style.borderColor = '#059669';
+                refreshStreetDirections();
+            } else {
+                btn.style.background = '#f9fafb';
+                btn.style.color = '#374151';
+                btn.style.borderColor = '#d1d5db';
+                streetDirectionsLayer.clearLayers();
+                lastOSMQueryBounds = null;
+            }
+        }
+
+        async function refreshStreetDirections() {
+            if (!showStreetDirections) return;
+            const zoom = map.getZoom();
+            if (zoom < 16) {
+                streetDirectionsLayer.clearLayers();
+                updateStatusInResults("🔍 Haz zoom para ver sentidos de calles");
+                return;
+            }
+
+            const bounds = map.getBounds();
+            const south = bounds.getSouth();
+            const west = bounds.getWest();
+            const north = bounds.getNorth();
+            const east = bounds.getEast();
+
+            // Skip if bounds haven't changed much
+            if (lastOSMQueryBounds && lastOSMQueryBounds.contains(bounds)) return;
+            lastOSMQueryBounds = bounds.pad(0.2); // Pad to fetch a bit more than viewport
+
+            try {
+                console.log("Fetching street directions from OSM...");
+                const data = await window.OSMAPI.getStreetsInBounds(south, west, north, east);
+                if (!data.elements) return;
+
+                streetDirectionsLayer.clearLayers();
+                
+                // Group nodes by ID for fast lookup
+                const nodes = {};
+                data.elements.forEach(el => {
+                    if (el.type === 'node') nodes[el.id] = { lat: el.lat, lng: el.lon };
+                });
+
+                data.elements.forEach(el => {
+                    if (el.type === 'way' && el.nodes) {
+                        const path = el.nodes.map(id => nodes[id]).filter(n => !!n);
+                        if (path.length < 2) return;
+
+                        const isOneway = el.tags && (el.tags.oneway === 'yes' || el.tags.oneway === '-1');
+                        const isReverse = el.tags && el.tags.oneway === '-1';
+
+                        const polyline = L.polyline(path, {
+                            color: '#94a3b8',
+                            weight: 2,
+                            opacity: 0.4,
+                            interactive: false
+                        }).addTo(streetDirectionsLayer);
+
+                        // Add arrows ONLY for oneway streets
+                        if (isOneway) {
+                            // If OSM oneway is '-1', the travel direction is opposite to the digitized nodes
+                            const arrowPath = isReverse ? [...path].reverse() : path;
+                            const arrowPolyline = L.polyline(arrowPath, { opacity: 0 }); // Hidden helper
+
+                            L.polylineDecorator(arrowPolyline, {
+                                patterns: [
+                                    {
+                                        offset: '10%',
+                                        repeat: '80px',
+                                        symbol: L.Symbol.arrowHead({
+                                            pixelSize: 8,
+                                            polygon: false,
+                                            pathOptions: { 
+                                                stroke: true, 
+                                                color: '#64748b', 
+                                                weight: 2, 
+                                                opacity: 0.8,
+                                                fill: false 
+                                            }
+                                        })
+                                    }
+                                ]
+                            }).addTo(streetDirectionsLayer);
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("Error refreshing street directions", e);
+            }
+        }
+
+        // Listen for map movements to update directions
+        map.on('moveend', () => {
+            if (showStreetDirections) refreshStreetDirections();
+        });
+
+        // --- ITINERARY EXPLORER ---
+        window._explorerGroupsExpanded = window._explorerGroupsExpanded || {};
+
+        window.toggleGroupExpansion = function(groupName) {
+            window._explorerGroupsExpanded[groupName] = !window._explorerGroupsExpanded[groupName];
+            showItineraryExplorer();
+        };
+
+        window.toggleGroupIndexing = function(groupName, forceState = null) {
+            const lines = currentLines || [];
+            const idsInGroup = lines
+                .filter(l => l.descripcion.split(' - ')[0] === groupName)
+                .map(l => String(l.codLinea));
+            
+            const indexed = IndexedLinesAPI.getIndexed();
+            const allSelected = idsInGroup.every(id => indexed.includes(id));
+            const nextState = forceState !== null ? forceState : !allSelected;
+
+            idsInGroup.forEach(id => IndexedLinesAPI.toggleIndexing(id, nextState));
+            showItineraryExplorer();
+        };
+
+        window.toggleLineIndexing = function(lineId) {
+            IndexedLinesAPI.toggleIndexing(lineId);
+            showItineraryExplorer();
+        };
+
+        window.bulkSetIndexing = function(type) {
+            const allIds = currentLines.map(l => String(l.codLinea));
+            const itineraries = DatabaseAPI.getItineraries();
+            
+            let newList = [];
+            if (type === 'all') newList = allIds;
+            else if (type === 'none') newList = [];
+            else if (type === 'synced') newList = allIds.filter(id => !!itineraries[id]);
+            
+            IndexedLinesAPI.saveIndexed(newList);
+            showItineraryExplorer();
+        };
+
+        window.showItineraryExplorer = async function() {
+            const content = document.getElementById('content');
+            const statusText = document.getElementById('status-text');
+            const panel = document.getElementById('panel');
+            
+            // Save scroll position
+            const currentScroll = content.scrollTop;
+            
+            // Maximize area
+            panel.classList.add('explorer-full');
+            
+            const itineraries = DatabaseAPI.getItineraries();
+            const indexed = IndexedLinesAPI.getIndexed();
+            const lines = currentLines || [];
+            
+            document.getElementById('back-btn').style.display = 'block';
+            statusText.innerHTML = "📖 Explorador de Itinerarios <span style='font-size:10px; opacity:0.7;'>v1.2</span>";
+
+            if (lines.length === 0) {
+                content.innerHTML = '<div style="padding:40px; text-align:center; color:#9ca3af;">No hay líneas cargadas aún.</div>';
+                return;
+            }
+
+            // Group lines by first part of description
+            const groups = {};
+            lines.forEach(line => {
+                // Better regex: split by dash with any whitespace around it
+                const parts = line.descripcion.split(/\s*[-\u2013\u2014]\s*/);
+                const groupName = parts[0].trim();
+                
+                if (!groups[groupName]) groups[groupName] = [];
+                groups[groupName].push(line);
+            });
+
+            // Sort group names alphabetically
+            const groupNames = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+
+            // Count selected lines that miss itinerary
+            const selectedToSync = lines.filter(l => indexed.includes(String(l.codLinea)) && !itineraries[String(l.codLinea)]);
+
+            let html = `
+                <div style="padding: 10px; font-size: 11px; color: #1e3a8a; background: #eff6ff; border-radius: 8px; margin: 0 10px 10px 10px; border: 1px solid #bfdbfe;">
+                    <div style="font-weight: 700; margin-bottom: 4px;">⚙️ SELECCIÓN DE LÍNEAS</div>
+                    <div style="color: #64748b; margin-bottom: 8px; line-height: 1.3;">
+                        Búsqueda limitada a las líneas marcadas abajo.
+                    </div>
+                    
+                    <div style="display:flex; gap:6px; margin-bottom: 10px; flex-wrap: wrap;">
+                        <button onclick="bulkSetIndexing('all')" style="background:white; color:#2563eb; border:1px solid #2563eb; padding:4px 8px; border-radius:4px; font-size:9px; cursor:pointer;">Todo</button>
+                        <button onclick="bulkSetIndexing('none')" style="background:white; color:#64748b; border:1px solid #cbd5e1; padding:4px 8px; border-radius:4px; font-size:9px; cursor:pointer;">Ninguno</button>
+                        <button onclick="bulkSetIndexing('synced')" style="background:white; color:#10b981; border:1px solid #bcf0da; padding:4px 8px; border-radius:4px; font-size:9px; cursor:pointer;">Sincronizados</button>
+                    </div>
+
+                    ${selectedToSync.length > 0 ? `
+                        <button onclick="initializeItineraryDatabase()" style="width:100%; background:#2563eb; color:white; border:none; padding:8px; border-radius:6px; font-size:11px; cursor:pointer; font-weight: 600; box-shadow: 0 2px 4px rgba(37,99,235,0.2);">
+                            📥 Sincronizar ${selectedToSync.length} seleccionados
+                        </button>
+                    ` : ''}
+                </div>
+                <div id="explorer-list" style="padding: 0 10px 20px 10px;">
+            `;
+
+            groupNames.forEach(groupName => {
+                const groupLines = groups[groupName];
+                const idsInGroup = groupLines.map(l => String(l.codLinea));
+                const allSelected = idsInGroup.every(id => indexed.includes(id));
+                const someSelected = idsInGroup.some(id => indexed.includes(id));
+                const isExpanded = window._explorerGroupsExpanded[groupName] || (someSelected && !allSelected); // Auto-expand if mixed or manually expanded
+
+                html += `
+                    <div class="explorer-group">
+                        <div class="group-header">
+                            <input type="checkbox" ${allSelected ? 'checked' : ''} 
+                                   style="width: 18px; height: 18px;" 
+                                   onclick="event.stopPropagation(); toggleGroupIndexing('${groupName.replace(/'/g, "\\'")}')">
+                            <div class="group-title" onclick="toggleGroupExpansion('${groupName.replace(/'/g, "\\'")}')">
+                                ${groupName} <span style="font-size: 10px; font-weight: normal; color: #64748b;">(${groupLines.length})</span>
+                            </div>
+                            <div class="group-expand-icon ${isExpanded ? 'expanded' : ''}" onclick="toggleGroupExpansion('${groupName.replace(/'/g, "\\'")}')">▼</div>
+                        </div>
+                        <div class="sub-lines-container ${isExpanded ? 'expanded' : ''}">
+                            ${groupLines.map(line => {
+                                const idStr = String(line.codLinea);
+                                const itinerary = itineraries[idStr];
+                                const isSelected = indexed.includes(idStr);
+                                
+                                // Clean display name: remove the group prefix and extra dashes
+                                const regex = new RegExp(`^${groupName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*[-\\u2013\\u2014]?\\s*`, 'i');
+                                const displayName = line.descripcion.replace(regex, '').trim() || 'Servicio principal';
+                                
+                                return `
+                                    <div class="sub-line-item" onclick="toggleLineIndexing('${line.codLinea}')">
+                                        <input type="checkbox" ${isSelected ? 'checked' : ''} style="width: 16px; height: 16px; pointer-events: none;">
+                                        <div style="flex: 1;">
+                                            <div style="font-weight: 600; color: #334155; font-size: 12px;">${displayName}</div>
+                                            <div style="font-size: 9px; color: ${itinerary ? '#10b981' : '#94a3b8'};">
+                                                ${itinerary ? '✅ OK' : '⬜ Pendiente'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            content.innerHTML = html + '</div>';
+            
+            // Restore scroll position IF we are still in explorer mode
+            if (statusText.innerText.includes("Explorador")) {
+                content.scrollTop = currentScroll;
+            }
+        };
+
+        window.toggleItineraryInsideExplorer = (lineId) => {
+            const el = document.getElementById(`exp-itinerary-${lineId}`);
+            if (el) {
+                const isShowing = el.style.display === 'block';
+                el.style.display = isShowing ? 'none' : 'block';
+            }
+        };
     </script>
 
 </body>

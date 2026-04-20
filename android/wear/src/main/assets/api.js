@@ -2,6 +2,7 @@
 
 const STATE = {
     isNative: false,
+    hasCapacitor: typeof window.Capacitor !== 'undefined' && window.Capacitor.Plugins && !!window.Capacitor.Plugins.CapacitorHttp,
     lines: [],
 };
 
@@ -88,16 +89,18 @@ async function getLines() {
             headers: { 'Content-Type': 'application/json' }
         };
 
-        if (!Capacitor.Plugins.CapacitorHttp) {
-            throw new Error("CapacitorHttp plugin missing!");
+        // Try Native CapacitorHttp if available
+        if (STATE.hasCapacitor) {
+            log("Sending Native Request via CapacitorHttp...");
+            const response = await Capacitor.Plugins.CapacitorHttp.get(options);
+            log("Response Rcvd. Status: " + response.status);
+            rawData = response.data;
+        } else {
+            // Fallback to standard Axios (for Wear OS or other WebViews)
+            log("CapacitorHttp not found. Falling back to standard Axios...");
+            const response = await axios.get(options.url, { timeout: 10000 });
+            rawData = response.data;
         }
-
-        log("Sending Native Request...");
-        const response = await Capacitor.Plugins.CapacitorHttp.get(options);
-        log("Response Rcvd. Status: " + response.status);
-
-        // Debug: Capacitor sometimes returns data as string
-        let rawData = response.data;
         if (typeof rawData === 'string') {
             try {
                 rawData = JSON.parse(rawData);
@@ -195,13 +198,18 @@ async function getBusPositions(lineIds) {
                 const url = `${BASE_URL_NATIVE}/posicionesBuses/${id}`;
                 log(`Fetching bus positions for line ${id} from ${url}`);
 
-                const options = {
-                    url: url,
-                    headers: { 'Content-Type': 'application/json' }
-                };
-                const res = await Capacitor.Plugins.CapacitorHttp.get(options);
-
-                let rawData = res.data;
+                let rawData;
+                if (STATE.hasCapacitor) {
+                    const options = {
+                        url: url,
+                        headers: { 'Content-Type': 'application/json' }
+                    };
+                    const res = await Capacitor.Plugins.CapacitorHttp.get(options);
+                    rawData = res.data;
+                } else {
+                    const res = await axios.get(url, { timeout: 10000 });
+                    rawData = res.data;
+                }
                 if (typeof rawData === 'string') {
                     try { rawData = JSON.parse(rawData); } catch (e) {
                         log(`Error parsing JSON for line ${id}: ${e}`);
@@ -384,5 +392,161 @@ window.OSMAPI = {
     },
     getWayDetails: async (lat, lng) => {
         return window.OSMAPI.getBatchWayDetails([{ lat, lng }]);
+    },
+    getStreetsInBounds: async (south, west, north, east) => {
+        const query = `[out:json][timeout:25];
+        (
+          way["highway"~"primary|secondary|tertiary|residential|unclassified|living_street"](${south},${west},${north},${east});
+        );
+        out body;
+        >;
+        out skel qt;`;
+        const url = 'https://overpass-api.de/api/interpreter';
+
+        try {
+            console.log(`🚀 OSM BBox Query: (${south},${west},${north},${east})`);
+            let response;
+            if (STATE.isNative) {
+                const options = { url: url + '?data=' + encodeURIComponent(query) };
+                const res = await Capacitor.Plugins.CapacitorHttp.get(options);
+                response = { data: res.data };
+                if (typeof response.data === 'string') response.data = JSON.parse(response.data);
+            } else {
+                response = await axios.get(url, { params: { data: query }, timeout: 15000 });
+            }
+            return response.data || { elements: [] };
+        } catch (e) {
+            console.error("OSM BBox API Error", e);
+            return { elements: [] };
+        }
+    },
+
+    // Validate a path against OSM one-way streets
+    validatePathDirection: async (path) => {
+        if (!path || path.length < 10) return { score: 0, confidence: 0 };
+
+        // Sample more points for better coverage (9 instead of 5)
+        const samples = [];
+        const sampleCount = 9;
+        const step = Math.floor(path.length / (sampleCount + 1));
+        
+        for (let i = 1; i <= sampleCount; i++) {
+            const idx = i * step;
+            // Robust bearing: find a point far enough (>15m) to avoid noise from jittery nodes
+            let nextIdx = idx + 1;
+            while (nextIdx < path.length - 1 && Geometry.getDistance(path[idx], path[nextIdx]) < 15) {
+                nextIdx++;
+            }
+            
+            samples.push({
+                point: path[idx],
+                next: path[nextIdx],
+                idx: idx
+            });
+        }
+
+        const osmWays = await window.OSMAPI.getBatchWayDetails(samples.map(s => s.point));
+        if (!osmWays || osmWays.length === 0) return { score: 0, confidence: 0 };
+
+        let mismatchCount = 0;
+        let matchCount = 0;
+        let validSegments = 0;
+
+        samples.forEach(sample => {
+            // Find the closest OSM way with a oneway tag
+            const way = osmWays.find(w => {
+                if (!w.tags || !w.tags.highway || !w.tags.oneway || w.tags.oneway === 'no') return false;
+                // Check if any node in way is near sample point
+                return w.geometry && w.geometry.some(g => 
+                    Math.abs(g.lat - sample.point.lat) < 0.0005 && 
+                    Math.abs(g.lon - sample.point.lng) < 0.0005
+                );
+            });
+
+            if (way && way.geometry && way.geometry.length >= 2) {
+                // Find the specific OSM segment nearest to the sample point
+                const osmPath = way.geometry.map(g => ({ lat: g.lat, lng: g.lon || g.lng }));
+                const projection = Geometry.projectOnPolyline(sample.point, osmPath);
+                
+                if (projection.index !== -1) {
+                    const p1 = osmPath[projection.index];
+                    const p2 = osmPath[projection.index + 1];
+                    const osmBearing = Geometry.getBearing(p1, p2);
+                    const rbBearing = Geometry.getBearing(sample.point, sample.next);
+                    
+                    const diff = Math.abs(osmBearing - rbBearing);
+                    const normalizedDiff = diff > 180 ? 360 - diff : diff;
+
+                    if (way.tags.oneway === 'yes') {
+                        validSegments++;
+                        if (normalizedDiff > 130) mismatchCount++;
+                        else if (normalizedDiff < 50) matchCount++;
+                    } else if (way.tags.oneway === '-1') {
+                        validSegments++;
+                        if (normalizedDiff < 50) mismatchCount++; // -1 means it should be opposite digitized direction
+                        else if (normalizedDiff > 130) matchCount++;
+                    }
+                }
+            }
+        });
+
+        const score = validSegments > 0 ? (mismatchCount / validSegments) : 0;
+        // ABSOLUTE PRIORITY: IF any oneway segment is mismatched and it's not outweighed by matches, consider it a mismatch.
+        // Also reduce the minimum count to 1 to be more responsive to single-way street data.
+        const isMismatch = (mismatchCount > matchCount) && (mismatchCount >= 1);
+
+
+        return { 
+            score, 
+            confidence: validSegments / sampleCount,
+            isMismatch: isMismatch
+        };
+    }
+};
+
+// Persistent Audit API
+window.AuditAPI = {
+    STORAGE_KEY: 'route_audits_v4',
+    VERSION: '4.0', 
+    getAudits: () => {
+        try {
+            const raw = localStorage.getItem(window.AuditAPI.STORAGE_KEY);
+            if (!raw) return {};
+            return JSON.parse(raw);
+        } catch (e) {
+            return {};
+        }
+    },
+    getAudit: (lineId) => {
+        const audits = window.AuditAPI.getAudits();
+        return audits[String(lineId)] || null;
+    },
+    saveAudit: (lineId, data) => {
+        const audits = window.AuditAPI.getAudits();
+        audits[String(lineId)] = {
+            ...data,
+            timestamp: Date.now()
+        };
+        localStorage.setItem(window.AuditAPI.STORAGE_KEY, JSON.stringify(audits));
+    },
+    clearAllAudits: () => {
+        localStorage.removeItem(window.AuditAPI.STORAGE_KEY);
+        console.log("🗑️ All audits cleared (V4)");
+    },
+    runAudit: async (lineId, path) => {
+        if (!path || path.length < 5) return null;
+        console.log(`🔍 Running OSM Alignment Check for line ${lineId}...`);
+        try {
+            const validation = await window.OSMAPI.validatePathDirection(path);
+            const auditData = {
+                isReversed: validation.isMismatch,
+                confidence: validation.confidence,
+                matchScore: validation.score
+            };
+            return auditData;
+        } catch (e) {
+            console.error(`Audit failed for line ${lineId}:`, e);
+            return null;
+        }
     }
 };

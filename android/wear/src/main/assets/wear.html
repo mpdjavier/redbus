@@ -5,12 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bus Radar Wear</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
             --primary: #2563eb;
             --background: #000000;
+            --surface: #1f2937;
             --text: #ffffff;
             --accent: #ef4444;
+            --success: #10b981;
         }
 
         body {
@@ -19,193 +23,491 @@
             background: var(--background);
             color: var(--text);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        /* Screen Wrapper (Circular) */
+        .screen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Views */
+        .view {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .view.active {
+            display: flex;
+        }
+
+        /* List View */
+        #list-view {
+            padding-top: 20%;
+            /* Padding for circular top */
+            padding-bottom: 20%;
+        }
+
+        .header {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .line-item {
+            background: var(--surface);
+            margin: 4px 10%;
+            padding: 12px;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .line-item:active {
+            background: #374151;
+        }
+
+        .line-number {
+            background: var(--primary);
+            color: white;
+            min-width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 14px;
+        }
+
+        .line-info {
+            flex-grow: 1;
+            text-align: left;
+        }
+
+        .line-name {
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 80px;
+        }
+
+        .line-eta {
+            font-size: 11px;
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        /* Map View */
+        #map-view {
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+
+        .map-overlay {
+            position: absolute;
+            bottom: 15%;
+            left: 0;
+            right: 0;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .map-badge {
+            background: rgba(0, 0, 0, 0.82);
+            backdrop-filter: blur(4px);
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 2px;
+            border: 1.5px solid var(--primary);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .map-stats {
+            display: flex;
+            gap: 8px;
+            font-size: 10px;
+            color: #9ca3af;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #4b5563;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            font-size: 18px;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+        /* Empty State */
+        .empty-state {
+            height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
+            padding: 20px;
             text-align: center;
         }
 
-        .container {
-            width: 90%;
-            height: 90%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-around;
-            border-radius: 50%;
-            /* Circle for Wear OS */
-            padding: 5%;
-        }
-
-        .line-badge {
-            background: var(--primary);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 24px;
-            font-weight: 800;
-            margin-bottom: 4px;
-        }
-
-        .info {
-            font-size: 16px;
-            font-weight: 600;
-            margin: 2px 0;
-        }
-
-        .eta {
+        .empty-icon {
             font-size: 32px;
-            color: #10b981;
-            font-weight: 900;
+            margin-bottom: 10px;
         }
 
-        .dist {
-            font-size: 14px;
+        .empty-text {
+            font-size: 12px;
             color: #9ca3af;
         }
 
-        button {
-            background: #374151;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            margin-top: 8px;
+        /* Scrollbar hide */
+        .view::-webkit-scrollbar {
+            display: none;
         }
 
-        button:active {
-            background: #4b5563;
+        /* Custom Markers */
+        .bus-marker-wear {
+            background: var(--accent);
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 18px !important;
+            height: 18px !important;
+            box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
         }
 
-        #status {
-            font-size: 12px;
-            color: #6b7280;
-        }
-
-        .loading {
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.5;
-            }
-
-            100% {
-                opacity: 1;
-            }
+        .pos-marker-wear {
+            background: var(--primary);
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 12px !important;
+            height: 12px !important;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div id="content">
-            <div class="line-badge" id="line-name">--</div>
-            <div class="info">Próximo en:</div>
-            <div class="eta" id="eta-time">-- min</div>
-            <div class="dist" id="eta-dist">-- m</div>
-            <button onclick="updateData()">Actualizar</button>
+    <div class="screen">
+        <!-- List View -->
+        <div id="list-view" class="view active">
+            <div class="header">Bus Radar</div>
+            <div id="results-list">
+                <!-- Dynamic Items -->
+            </div>
+            <div id="no-results" class="empty-state" style="display: none;">
+                <div class="empty-icon">📱</div>
+                <div class="empty-text">Realiza una búsqueda en tu celular para ver las líneas aquí.</div>
+            </div>
         </div>
-        <div id="status">Cargando...</div>
+
+        <!-- Map View -->
+        <div id="map-view" class="view">
+            <div class="back-btn" onclick="showList()">✕</div>
+            <div id="map"></div>
+            <div class="map-overlay">
+                <div class="map-badge">
+                    <div id="map-eta" style="color: var(--success); font-size: 13px;">--</div>
+                    <div class="map-stats" id="map-stats">
+                        <span id="map-dist">-- m</span>
+                        <span id="map-speed">-- km/h</span>
+                    </div>
+                </div>
+                <div id="map-line-info" style="font-size: 9px; font-weight: 600; text-shadow: 0 1px 2px black; color: #9ca3af; max-width: 80px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">--</div>
+            </div>
+        </div>
     </div>
 
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="api.js"></script>
     <script src="geometry.js"></script>
 
     <script>
-        let lastKnownLine = localStorage.getItem('last_selected_line') || null;
+        let sharedState = null;
+        let map = null;
+        let selectedLineId = null;
+        let busMarkers = [];
+        let posMarker = null;
+        let routeLayer = null;
+        let refreshInterval = null;
 
-        async function updateData() {
-            const statusEl = document.getElementById('status');
-            const etaTimeEl = document.getElementById('eta-time');
-            const etaDistEl = document.getElementById('eta-dist');
-            const lineNameEl = document.getElementById('line-name');
+        // Initialize Map
+        function initMap() {
+            if (map) return;
+            map = L.map('map', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView([-26.83, -65.20], 15);
 
-            statusEl.innerText = "Buscando...";
-            statusEl.classList.add('loading');
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 20
+            }).addTo(map);
+        }
 
-            try {
-                // For simplified version, we just get the user location and the last selected line
-                // In a real app, this would be more complex, but for a prototype:
-                const pos = await BusAPI.getCurrentPosition();
+        function loadSharedState() {
+            const data = localStorage.getItem('shared_bus_radar_state');
+            if (data) {
+                sharedState = JSON.parse(data);
+                return true;
+            }
+            return false;
+        }
 
-                // If no line selected, we'll try to find the closest one
-                if (!lastKnownLine) {
-                    const lines = await BusAPI.getLines();
-                    // Just take the first one for demo purposes if nothing else
-                    lastKnownLine = lines[0].codLinea;
-                }
+        function renderList() {
+            const listEl = document.getElementById('results-list');
+            const emptyEl = document.getElementById('no-results');
 
-                lineNameEl.innerText = lastKnownLine;
+            if (!loadSharedState() || !sharedState.results || sharedState.results.length === 0) {
+                listEl.innerHTML = '';
+                emptyEl.style.display = 'flex';
+                return;
+            }
 
-                const route = await BusAPI.getRoute(lastKnownLine);
-                const path = route.nodos.map(n => ({ lat: n.latitud, lng: n.longitud }));
+            emptyEl.style.display = 'none';
+            let html = '';
+            sharedState.results.forEach(item => {
+                const lineCode = item.line.codLinea;
+                const desc = item.line.descripcion.split(' - ')[0].replace('Línea ', '');
+                
+                html += `
+                    <div class="line-item" onclick="showMap('${lineCode}')">
+                        <div class="line-number">${desc}</div>
+                        <div class="line-info">
+                            <div class="line-name">Línea ${desc}</div>
+                            <div class="line-eta" id="list-eta-${lineCode}">Calculando...</div>
+                        </div>
+                    </div>
+                `;
+            });
+            listEl.innerHTML = html;
 
-                const positions = await BusAPI.getBusPositions([lastKnownLine]);
+            // Start background sync for ETA in list
+            syncListETAs();
+        }
 
-                if (positions && positions.length > 0) {
-                    // Simple arrival calculation
-                    let minDist = Infinity;
-                    let minTime = Infinity;
-
-                    positions.forEach(bus => {
-                        const busPoint = { lat: bus.latitud, lng: bus.longitud };
-                        const dist = Geometry.smartDistanceAlongRoute(busPoint, pos, path);
-
-                        if (dist >= 0) {
-                            const velocity = bus.velocidad || 20;
-                            const time = (dist / ((velocity * 1000) / 60));
-                            if (time < minTime) {
-                                minTime = time;
-                                minDist = dist;
-                            }
-                        }
-                    });
-
-                    if (minTime !== Infinity) {
-                        etaTimeEl.innerText = Math.round(minTime) + " min";
-                        etaDistEl.innerText = Math.round(minDist) + " m";
-                        statusEl.innerText = "Sincronizado";
+        async function syncListETAs() {
+            if (!sharedState || !sharedState.results) return;
+            
+            for (const item of sharedState.results) {
+                const lineId = item.line.codLinea;
+                try {
+                    const positions = await BusAPI.getBusPositions([lineId]);
+                    if (positions && positions.length > 0 && sharedState.origin) {
+                        const nextBus = calculateNextArrival(positions, item.path, sharedState.origin);
+                        const el = document.getElementById(`list-eta-${lineId}`);
+                        if (el) el.innerText = nextBus ? `${nextBus.timeMinutes} min` : 'Sin buses cerca';
                     } else {
-                        etaTimeEl.innerText = "--";
-                        etaDistEl.innerText = "Sin buses cerca";
-                        statusEl.innerText = "Fuera de alcance";
+                        const el = document.getElementById(`list-eta-${lineId}`);
+                        if (el) el.innerText = 'Sin buses';
                     }
-                } else {
-                    etaTimeEl.innerText = "--";
-                    etaDistEl.innerText = "Sin buses";
-                    statusEl.innerText = "Sin datos";
-                }
-
-            } catch (err) {
-                console.error(err);
-                statusEl.innerText = "Error: " + err.message;
-            } finally {
-                statusEl.classList.remove('loading');
+                } catch (e) {}
             }
         }
 
-        // Initialize
-        document.addEventListener('bus-api-ready', updateData);
-        // Fallback if event already fired
-        setTimeout(() => {
-            if (document.getElementById('eta-time').innerText === '-- min') {
-                updateData();
+        function calculateNextArrival(positions, path, origin) {
+            let minTime = Infinity;
+            let result = null;
+            positions.forEach(bus => {
+                const busPoint = { lat: bus.latitud, lng: bus.longitud };
+                const dist = Geometry.smartDistanceAlongRoute(busPoint, origin, path);
+                if (dist >= 0) {
+                    const velocity = bus.velocidad > 5 ? bus.velocidad : 20; // Default to 20 if stationary
+                    const time = Math.round(dist / ((velocity * 1000) / 60));
+                    if (time < minTime) {
+                        minTime = time;
+                        result = { timeMinutes: time, distance: Math.round(dist), bus: bus };
+                    }
+                }
+            });
+            return result;
+        }
+
+        async function showMap(lineId) {
+            selectedLineId = lineId;
+            document.getElementById('list-view').classList.remove('active');
+            document.getElementById('map-view').classList.add('active');
+            
+            initMap();
+            
+            const result = sharedState.results.find(r => r.line.codLinea == lineId);
+            document.getElementById('map-line-info').innerText = result ? result.line.descripcion : `Línea ${lineId}`;
+
+            // Draw Route
+            if (routeLayer) map.removeLayer(routeLayer);
+            if (result && result.path) {
+                const latLngs = result.path.map(p => [p.lat, p.lng]);
+                routeLayer = L.polyline(latLngs, { color: '#ef4444', weight: 4, opacity: 0.7 }).addTo(map);
             }
-        }, 2000);
+
+            // Draw User Position
+            if (posMarker) map.removeLayer(posMarker);
+            if (sharedState.origin) {
+                posMarker = L.circleMarker([sharedState.origin.lat, sharedState.origin.lng], {
+                    radius: 6,
+                    color: '#fff',
+                    weight: 2,
+                    fillColor: '#2563eb',
+                    fillOpacity: 1
+                }).addTo(map);
+                map.setView([sharedState.origin.lat, sharedState.origin.lng], 16);
+            }
+
+            updateMapBuses(true); // Force first zoom
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(updateMapBuses, 10000);
+        }
+
+        async function updateMapBuses(forceZoom = false) {
+            if (!selectedLineId) return;
+            
+            try {
+                const positions = await BusAPI.getBusPositions([selectedLineId]);
+                
+                // Clear old
+                busMarkers.forEach(m => map.removeLayer(m));
+                busMarkers = [];
+
+                const result = sharedState.results.find(r => r.line.codLinea == selectedLineId);
+                let nextBus = null;
+
+                if (positions && positions.length > 0) {
+                    positions.forEach(bus => {
+                        const marker = L.circleMarker([bus.latitud, bus.longitud], {
+                            radius: 8,
+                            color: '#fff',
+                            weight: 2,
+                            fillColor: '#ef4444',
+                            fillOpacity: 1
+                        }).addTo(map);
+                        busMarkers.push(marker);
+                        
+                        // Store bus for ETA calculation
+                        bus.point = { lat: bus.latitud, lng: bus.longitud };
+                    });
+
+                    if (result && sharedState.origin) {
+                        // Find the absolute closest bus in time/distance
+                        nextBus = calculateNextArrival(positions, result.path, sharedState.origin);
+                        
+                        // PROXIMITY ZOOM: Zooming in where the user + bus are
+                        if (forceZoom || !map.getBounds().contains([sharedState.origin.lat, sharedState.origin.lng])) {
+                            if (nextBus && nextBus.bus) {
+                                const bounds = L.latLngBounds([
+                                    [sharedState.origin.lat, sharedState.origin.lng],
+                                    [nextBus.bus.latitud, nextBus.bus.longitud]
+                                ]);
+                                map.fitBounds(bounds.pad(0.3), { animate: true });
+                            } else {
+                                map.setView([sharedState.origin.lat, sharedState.origin.lng], 16);
+                            }
+                        }
+                    }
+                }
+
+                // Update Overlay Stats
+                const etaEl = document.getElementById('map-eta');
+                const distEl = document.getElementById('map-dist');
+                const speedEl = document.getElementById('map-speed');
+
+                if (nextBus) {
+                    etaEl.innerText = `${nextBus.timeMinutes} min`;
+                    distEl.innerText = `${nextBus.distance} m`;
+                    speedEl.innerText = `${nextBus.bus.velocidad || 0} km/h`;
+                    etaEl.style.color = 'var(--success)';
+                } else {
+                    etaEl.innerText = positions.length > 0 ? 'Fuera de ruta' : 'Sin buses';
+                    distEl.innerText = '--';
+                    speedEl.innerText = '--';
+                    etaEl.style.color = 'var(--accent)';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function showList() {
+            selectedLineId = null;
+            if (refreshInterval) clearInterval(refreshInterval);
+            document.getElementById('map-view').classList.remove('active');
+            document.getElementById('list-view').classList.add('active');
+            renderList();
+        }
+
+        // Auto-refresh when state changes in localStorage (Storage Event fallback)
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'shared_bus_radar_state') {
+                const data = JSON.parse(e.newValue);
+                window.updateFromPhone(data);
+            }
+        });
+
+        // Real-time Update Handler from Native Bridge
+        window.updateFromPhone = (data) => {
+            console.log("📲 Sync received from phone", data);
+            sharedState = data;
+            
+            // Auto-follow: If phone selected a line and we are not tracking anything yet
+            if (data.selectedLineId && !selectedLineId && document.getElementById('list-view').classList.contains('active')) {
+                showMap(data.selectedLineId);
+            } else if (!data.selectedLineId && selectedLineId) {
+                // If phone cleared selection, return to list (optional, but keep autonomy)
+                // showList(); 
+            }
+            
+            if (selectedLineId) updateMapBuses();
+            else renderList();
+        };
+
+        // Initialize
+        document.addEventListener('bus-api-ready', () => {
+            renderList();
+        });
+
+        // Check for updates every 30 seconds even if storage event doesn't fire
+        setInterval(renderList, 30000);
+
     </script>
 </body>
 

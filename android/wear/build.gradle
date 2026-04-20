@@ -1,4 +1,7 @@
-apply plugin: 'com.android.application'
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
 
 android {
     namespace 'com.mpd.redbus.wear'
@@ -34,3 +37,5 @@ dependencies {
     
     implementation "androidx.webkit:webkit:${rootProject.ext.androidxWebkitVersion}"
 }
+
+task prepareKotlinBuildScriptModel {}

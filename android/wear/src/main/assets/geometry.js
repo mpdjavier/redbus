@@ -427,24 +427,31 @@ const Geometry = {
     },
 
     // Detect if the majority of buses are moving backward relative to the route
-    // returns { isMismatch: boolean, mismatchCount: number, matchCount: number }
+    // returns { isMismatch: boolean, mismatchCount: number, matchCount: number, confidence: number }
     detectBusMotionInversion: function (positions, polyline) {
         if (!positions || positions.length === 0 || !polyline || polyline.length < 2) {
-            return { isMismatch: false, mismatchCount: 0, matchCount: 0 };
+            return { isMismatch: false, mismatchCount: 0, matchCount: 0, confidence: 0 };
         }
 
         let mismatchCount = 0;
         let matchCount = 0;
+        let totalValids = 0;
 
         positions.forEach(bus => {
-            // Ignore buses with undefined/0 orientation as they are unreliable
-            if (bus.orientacion === undefined || bus.orientacion === null || bus.orientacion === 0) return;
+            // STRICT: Only use orientation if it was INFERRED from movement (>15m)
+            // or if we have explicit confidence in it.
+            // API-provided headings (orientacion) are often static/wrong at starts.
+            if (!bus.inferredHeading && !bus.orientacion_verificada) {
+                return;
+            }
 
+            const headingToUse = bus.inferredHeading || bus.orientacion;
             const busPoint = { lat: bus.latitud, lng: bus.longitud };
-            // Use findAllProjections to find where the bus is on the route
+            
             const candidates = this.findAllProjections(busPoint, polyline, 80);
             if (candidates.length === 0) return;
 
+            totalValids++;
             const bestCandidate = candidates[0];
             const p1 = polyline[bestCandidate.index];
             const p2 = polyline[bestCandidate.index + 1];
@@ -453,18 +460,23 @@ const Geometry = {
             const routeHeading = this.getBearing(p1, p2);
 
             // If bus heading is clearly inverted relative to route segment (> 110 deg)
-            if (!this.isHeadingAligned(bus.orientacion, routeHeading, 110)) {
+            if (!this.isHeadingAligned(headingToUse, routeHeading, 110)) {
                 mismatchCount++;
-            } else if (this.isHeadingAligned(bus.orientacion, routeHeading, 60)) {
+            } else if (this.isHeadingAligned(headingToUse, routeHeading, 60)) {
                 matchCount++;
             }
         });
 
+        // Inversion threshold: 
+        // Must have at least 1 verified mismatch and more mismatches than matches
+        const confidence = totalValids > 0 ? (mismatchCount / totalValids) : 0;
+        const isMismatch = (mismatchCount > matchCount) && (mismatchCount >= 1);
+
         return {
-            // Inversion threshold: more mismatches than matches, and at least 1 clear mismatch
-            isMismatch: (mismatchCount > 0 && mismatchCount >= matchCount),
+            isMismatch,
             mismatchCount,
-            matchCount
+            matchCount,
+            confidence
         };
     }
 };
